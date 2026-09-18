@@ -2,6 +2,8 @@
 
 Launch a token on Solana and get its creator fees delivered to a phone.
 
+Live at [fornum-exed.vercel.app](https://fornum-exed.vercel.app)
+
 Fornum deploys the mint with our treasury set as the fee recipient, so every fee
 the token earns has a destination on file. We claim the fees, call the WhatsApp
 number the launch pointed at, and send the payout in dollars once the owner of
