@@ -10,9 +10,9 @@ export type SegmentOption<T extends string> = {
 };
 
 /**
- * Сегментированный переключатель с едущей подложкой.
- * Колонки равной ширины, поэтому индикатор просто сдвигается на index*100%
- * — без замеров в JS и без дёрганья при ресайзе.
+ * Segmented control with a sliding backdrop. Columns are equal width, so the
+ * indicator just moves by index * 100%, no measuring in JS and no jitter on
+ * resize
  */
 export function Segmented<T extends string>({
   options,

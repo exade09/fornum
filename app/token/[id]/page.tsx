@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  Avatar,
   Card,
+  CallChip,
   Field,
   Progress,
-  StatusChip,
-  type Status,
+  TokenChip,
 } from "@/components/ui/primitives";
+import { TokenMark, WalletMark } from "@/components/ui/token-mark";
 import { Waveform } from "@/components/ui/waveform";
 import {
   ArrowRightIcon,
@@ -17,77 +17,80 @@ import {
   PhoneIcon,
   WhatsAppIcon,
 } from "@/components/icons";
-import { REQUESTS, getRequest, usd } from "@/lib/mock";
+import {
+  TOKENS,
+  callsForToken,
+  compactUsd,
+  getToken,
+  num,
+  usd,
+} from "@/lib/data";
 import { cn } from "@/lib/cn";
 
 export function generateStaticParams() {
-  return REQUESTS.map((r) => ({ id: r.id }));
+  return TOKENS.map((t) => ({ id: t.id }));
 }
 
 export async function generateMetadata({
   params,
-}: PageProps<"/request/[id]">): Promise<Metadata> {
+}: PageProps<"/token/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const r = getRequest(id);
-  return { title: r ? `${r.ticker} — заявка` : "Заявка" };
+  const t = getToken(id);
+  return { title: t ? `${t.symbol}, ${t.name}` : "Token" };
 }
 
-/** Шаги жизненного цикла заявки — совпадают с инструкциями программы. */
+/** Lifecycle of one token, each step maps to an instruction in the program */
 const STEPS = [
-  { key: "created", label: "Заявка создана", hint: "create_request" },
-  { key: "escrow", label: "Средства в эскроу", hint: "fund_escrow" },
-  { key: "verified", label: "Номер подтверждён", hint: "confirm_recipient" },
-  { key: "dialed", label: "Дозвон", hint: "mark_delivered" },
-  { key: "settled", label: "Выплата", hint: "settle" },
-] as const;
+  { label: "Mint deployed", hint: "launch_token" },
+  { label: "Number confirmed", hint: "confirm_recipient" },
+  { label: "Fees claimed", hint: "claim_fees" },
+  { label: "Call placed", hint: "place_call" },
+  { label: "Payout sent", hint: "settle" },
+];
 
-const REACHED: Record<Status, number> = {
-  queued: 2,
-  verifying: 2,
-  dialing: 3,
-  paid: 5,
-  refunded: 2,
-};
-
-export default async function RequestPage({ params }: PageProps<"/request/[id]">) {
+export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
   const { id } = await params;
-  const r = getRequest(id);
-  if (!r) notFound();
+  const t = getToken(id);
+  if (!t) notFound();
 
-  const reached = REACHED[r.status];
-  const ratio = r.calls > 0 ? r.answered / r.calls : 0;
+  const calls = callsForToken(t.id);
+  const paidRatio = t.feesClaimed > 0 ? t.feesPaid / t.feesClaimed : 0;
+
+  // how far this token got, derived from what actually happened to it
+  let reached = 1;
+  if (t.recipientConfirmed) reached = 2;
+  if (t.feesClaimed > 0 && t.recipientConfirmed) reached = 3;
+  if (calls.some((c) => c.status === "answered")) reached = 4;
+  if (t.feesPaid > 0) reached = 5;
 
   return (
     <div className="mx-auto flex w-full flex-col gap-3 px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
       <Link
-        href="/queue"
-        className="flex w-fit items-center gap-1 text-sm text-secondary transition-colors hover:text-primary"
+        href="/tokens"
+        className="group flex w-fit items-center gap-1 text-sm text-secondary transition-colors hover:text-primary"
       >
-        <ChevronLeftIcon className="size-4" />
-        Назад в очередь
+        <ChevronLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
+        Back to tokens
       </Link>
 
-      {/* --- шапка: заявка и получатель --- */}
       <div className="animate-section-in grid gap-3 lg:grid-cols-2">
         <Card sheen className="flex items-center gap-4 p-5">
-          <Avatar seed={r.ticker} rounded="xl" className="size-14" />
-          <div className="flex min-w-0 flex-col gap-0.5">
+          <TokenMark symbol={t.symbol} size="xl" className="size-14" />
+          <div className="flex min-w-0 flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="truncate text-lg font-bold text-primary">
-                {r.ticker}
+                {t.symbol}
               </span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-secondary">
-                {r.kind === "alert" ? "АЛЕРТ" : "ПЕРЕВОД"}
-              </span>
+              <TokenChip status={t.status} />
             </div>
-            <span className="truncate text-sm text-secondary">{r.name}</span>
+            <span className="truncate text-sm text-secondary">{t.name}</span>
           </div>
           <div className="ml-auto flex flex-col items-end">
             <span className="text-[10px] font-bold tracking-wider text-secondary">
-              В ЭСКРОУ
+              MARKET CAP
             </span>
             <span className="tnum text-xl font-bold text-primary">
-              {usd(r.amount)}
+              {compactUsd(t.marketCap)}
             </span>
           </div>
         </Card>
@@ -96,79 +99,80 @@ export default async function RequestPage({ params }: PageProps<"/request/[id]">
           <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-brand/15">
             <WhatsAppIcon className="size-7 text-brand" />
           </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="flex min-w-0 flex-col gap-1">
             <span className="tnum truncate text-lg font-bold text-primary">
-              {r.phone}
+              {t.recipient}
             </span>
             <span className="flex items-center gap-1 text-sm text-secondary">
-              {reached >= 3 ? (
+              {t.recipientConfirmed ? (
                 <>
                   <CheckIcon className="size-3.5 text-brand" />
-                  Номер подтверждён
+                  Consent on file
                 </>
               ) : (
-                "Ждём подтверждения"
+                "Waiting for the owner to confirm"
               )}
             </span>
           </div>
           <div className="ml-auto flex flex-col items-end">
             <span className="text-[10px] font-bold tracking-wider text-secondary">
-              ВЫПЛАЧЕНО
+              PAID OUT
             </span>
             <span className="tnum text-xl font-bold text-brand">
-              {usd(r.settled)}
+              {usd(t.feesPaid, 0)}
             </span>
           </div>
         </Card>
       </div>
 
-      {/* --- главный блок статуса --- */}
       <Card
         sheen
         className="animate-section-in flex flex-col gap-5 p-6"
         style={{ animationDelay: "60ms" }}
       >
         <div className="flex flex-wrap items-center gap-3">
-          <StatusChip status={r.status} pulse={r.status === "dialing"} />
           <span className="text-sm text-secondary">
-            создана {r.createdAgo} назад · исполнитель{" "}
-            <span className={r.agent === "human" ? "text-dialing" : "text-brand"}>
-              {r.agent === "human" ? "живой оператор" : "робот"}
-            </span>
+            Launched {t.launchedAgo} by
           </span>
-          <span className="tnum ml-auto rounded-full bg-background/70 px-3 py-1 text-sm text-secondary">
-            позиция #{r.queue}
-          </span>
+          <Link
+            href={`/u/${t.creator.replace(/[^A-Za-z0-9]/g, "")}`}
+            className="group flex items-center gap-2 text-sm font-bold text-primary"
+          >
+            <WalletMark address={t.creator} className="size-6" />
+            {t.creator}
+            <ArrowRightIcon className="size-3 text-secondary transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
 
         <div className="flex flex-wrap items-end gap-x-12 gap-y-5">
-          <Field label="ДОЗВОНОВ" value={r.answered.toLocaleString("en-US")} accent="brand" />
-          <Field label="ЗАПЛАНИРОВАНО" value={r.calls.toLocaleString("en-US")} />
           <Field
-            label="ОСТАТОК В ЭСКРОУ"
-            value={usd(r.amount - r.settled)}
-            accent="queued"
+            label="Fees claimed"
+            value={usd(t.feesClaimed, 0)}
+            accent="brand"
           />
           <Field
-            label="КОНВЕРСИЯ"
-            value={`${Math.round(ratio * 100)}%`}
+            label="Still to send"
+            value={usd(t.feesClaimed - t.feesPaid, 0)}
+            accent="queued"
+          />
+          <Field label="Holders" value={num(t.holders)} />
+          <Field
+            label="Calls made"
+            value={`${t.answered} of ${t.calls}`}
             accent="dialing"
           />
         </div>
 
-        <Progress value={ratio} />
+        <Progress value={paidRatio} />
       </Card>
 
-      {/* --- таймлайн и скрипт --- */}
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Card
           sheen
           className="animate-section-in flex flex-col gap-1 p-6"
           style={{ animationDelay: "120ms" }}
         >
-          <h2 className="mb-3 text-sm font-bold text-primary">
-            Что уже произошло
-          </h2>
+          <h2 className="mb-3 text-sm font-bold text-primary">Where it stands</h2>
 
           {STEPS.map((step, i) => {
             const done = i < reached;
@@ -176,8 +180,7 @@ export default async function RequestPage({ params }: PageProps<"/request/[id]">
             const last = i === STEPS.length - 1;
 
             return (
-              <div key={step.key} className="flex gap-4">
-                {/* колонка с точкой и соединителем */}
+              <div key={step.hint} className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <span
                     className={cn(
@@ -227,45 +230,50 @@ export default async function RequestPage({ params }: PageProps<"/request/[id]">
         </Card>
 
         <div className="flex flex-col gap-3">
-          <Card
-            sheen
-            className="animate-section-in flex flex-col gap-3 p-5"
-            style={{ animationDelay: "160ms" }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15">
-                {r.status === "dialing" && (
-                  <span className="animate-ring-pulse motion-reduce:animate-none absolute size-10 rounded-full bg-brand/40" />
-                )}
-                <PhoneIcon className="size-5 text-brand" />
-              </span>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-sm font-bold text-primary">
-                  Текст звонка
+          {calls.map((c, i) => (
+            <Card
+              key={c.id}
+              sheen
+              className="animate-section-in flex flex-col gap-3 p-5"
+              style={{ animationDelay: `${160 + i * 60}ms` }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15">
+                  {c.status === "dialing" && (
+                    <span className="animate-ring-pulse motion-reduce:animate-none absolute size-10 rounded-full bg-brand/40" />
+                  )}
+                  <PhoneIcon className="size-5 text-brand" />
                 </span>
-                <span className="text-xs text-secondary">
-                  {r.agent === "human" ? "читает оператор" : "синтез речи"}
-                </span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-bold text-primary">
+                    {c.kind === "payout" ? "Payout call" : "Holder alert"}
+                  </span>
+                  <span className="text-xs text-secondary">
+                    {c.agent === "operator" ? "live operator" : "recorded voice"}
+                    {c.duration ? `, ${c.duration}` : ""}
+                  </span>
+                </div>
+                <CallChip status={c.status} className="ml-auto" />
               </div>
-            </div>
 
-            <p className="text-sm text-secondary">{r.script}</p>
+              <p className="text-sm text-secondary">{c.script}</p>
+              <Waveform
+                className="h-9"
+                paused={c.status !== "dialing"}
+                bars={30}
+              />
+            </Card>
+          ))}
 
-            <Waveform
-              className="h-10"
-              paused={r.status !== "dialing"}
-              bars={32}
+          <Card className="animate-section-in flex flex-col gap-3 p-5">
+            <span className="text-sm font-bold text-primary">On chain</span>
+            <Row
+              label="Mint"
+              value={t.mint}
+              href={`https://solscan.io/token/${t.mint}`}
             />
-          </Card>
-
-          <Card
-            className="animate-section-in flex flex-col gap-3 p-5"
-            style={{ animationDelay: "200ms" }}
-          >
-            <span className="text-sm font-bold text-primary">Ончейн</span>
-            <Row label="PDA заявки" value={r.pda} />
-            <Row label="Создатель" value={r.creator} />
-            <Row label="Транзакция" value={r.tx} href={`https://solscan.io/tx/${r.tx}`} />
+            <Row label="Creator" value={t.creator} />
+            <Row label="Fee recipient" value="Fornum treasury" />
           </Card>
         </div>
       </div>
@@ -282,7 +290,7 @@ function Row({
   value: string;
   href?: string;
 }) {
-  const content = (
+  const body = (
     <span className="truncate font-mono text-xs text-primary/80 transition-colors group-hover:text-primary">
       {value}
     </span>
@@ -298,11 +306,11 @@ function Row({
           rel="noreferrer"
           className="group flex min-w-0 flex-1 items-center gap-1"
         >
-          {content}
+          {body}
           <ArrowRightIcon className="size-3 shrink-0 text-secondary transition-colors group-hover:text-primary" />
         </a>
       ) : (
-        <span className="min-w-0 flex-1">{content}</span>
+        <span className="min-w-0 flex-1">{body}</span>
       )}
     </div>
   );

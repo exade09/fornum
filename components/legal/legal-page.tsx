@@ -17,7 +17,7 @@ export function LegalPage({
       <h1 className="animate-section-in font-display mt-1 text-3xl font-normal tracking-tight text-primary sm:text-4xl">
         {title}
       </h1>
-      <p className="mt-2 text-sm text-secondary">Обновлено {updated}</p>
+      <p className="mt-2 text-sm text-secondary">Updated {updated}</p>
       <p className="mt-6 max-w-[68ch] text-base text-secondary">{intro}</p>
 
       <div className="mt-10 flex flex-col gap-8">

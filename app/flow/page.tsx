@@ -1,32 +1,48 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/shell/page-hero";
+import { Card } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Flow" };
 
 const NODES = [
-  { x: 60, label: "Заявка", sub: "форма на сайте" },
-  { x: 230, label: "Эскроу", sub: "средства заморожены" },
-  { x: 400, label: "Очередь", sub: "позиция ончейн" },
-  { x: 570, label: "Подтверждение", sub: "получатель согласился" },
-  { x: 740, label: "Звонок", sub: "робот или оператор" },
-  { x: 910, label: "Выплата", sub: "эскроу раскрыт" },
+  { x: 60, label: "Launch", sub: "mint deployed here" },
+  { x: 230, label: "Trading", sub: "creator fees build up" },
+  { x: 400, label: "Claim", sub: "fees pulled on chain" },
+  { x: 570, label: "Consent", sub: "number confirms once" },
+  { x: 740, label: "Call", sub: "voice or operator" },
+  { x: 910, label: "Payout", sub: "dollars on the phone" },
+];
+
+const NOTES = [
+  {
+    t: "Why fees exist",
+    d: "The mint is deployed with our treasury as fee recipient. That is set at launch and cannot drift later",
+  },
+  {
+    t: "Why the call",
+    d: "The call is how the recipient proves the number is theirs before money moves",
+  },
+  {
+    t: "If it fails",
+    d: "No consent or no answer means the fees stay in escrow, and the launcher can redirect or withdraw them",
+  },
 ];
 
 export default function FlowPage() {
   return (
     <>
       <PageHero
-        title="Поток средств"
-        description="Деньги не двигаются, пока получатель не подтвердил номер, а звонок не состоялся. Каждый шаг — отдельная инструкция в программе."
+        title="Where the money goes"
+        description="Nothing moves until the number confirms and the call goes through. Each node below is one instruction in the program"
       />
 
       <section className="mx-auto w-full px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
-        <div className="animate-section-in overflow-x-auto rounded-2xl border border-primary/[0.06] bg-card p-6">
+        <Card sheen className="animate-section-in overflow-x-auto p-6">
           <svg
             viewBox="0 0 990 160"
-            className="h-40 min-w-[900px] w-full"
+            className="h-40 w-full min-w-[900px]"
             role="img"
-            aria-label="Схема: заявка, эскроу, очередь, подтверждение, звонок, выплата"
+            aria-label="Launch, trading, claim, consent, call, payout"
           >
             {NODES.slice(0, -1).map((n, i) => (
               <line
@@ -42,7 +58,7 @@ export default function FlowPage() {
               />
             ))}
 
-            {NODES.map((n) => (
+            {NODES.map((n, i) => (
               <g key={n.label}>
                 <circle
                   cx={n.x}
@@ -51,7 +67,14 @@ export default function FlowPage() {
                   fill="hsl(var(--background))"
                   stroke="hsl(var(--primary) / 0.16)"
                 />
-                <circle cx={n.x} cy={62} r={6} fill="hsl(var(--brand))" />
+                <circle
+                  cx={n.x}
+                  cy={62}
+                  r={6}
+                  fill="hsl(var(--brand))"
+                  className="animate-breathe motion-reduce:animate-none"
+                  style={{ animationDelay: `${i * 240}ms` }}
+                />
                 <text
                   x={n.x}
                   y={108}
@@ -74,30 +97,20 @@ export default function FlowPage() {
               </g>
             ))}
           </svg>
-        </div>
+        </Card>
 
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {[
-            {
-              t: "Эскроу",
-              d: "Сумма лежит в PDA заявки. Создатель может отозвать её, пока звонок не начат.",
-            },
-            {
-              t: "Подтверждение",
-              d: "Номер хранится хешем. В открытом виде он не попадает ни в аккаунт, ни в логи.",
-            },
-            {
-              t: "Раскрытие",
-              d: "Эскроу раскрывается только после отметки о дозвоне. Недозвон возвращает средства.",
-            },
-          ].map((c) => (
-            <article
+          {NOTES.map((c, i) => (
+            <Card
               key={c.t}
-              className="rounded-2xl border border-primary/[0.06] bg-card p-5"
+              lift
+              sheen
+              className="animate-card-in motion-reduce:animate-none flex flex-col gap-2 p-5"
+              style={{ animationDelay: `${i * 80}ms` }}
             >
               <span className="text-sm font-bold text-primary">{c.t}</span>
-              <p className="mt-1 text-sm text-secondary">{c.d}</p>
-            </article>
+              <p className="text-sm text-secondary">{c.d}</p>
+            </Card>
           ))}
         </div>
       </section>

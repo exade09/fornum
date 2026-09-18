@@ -1,8 +1,8 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Голосовая волна. Высоты детерминированы (псевдослучайны по индексу),
- * поэтому SSR и клиент рисуют одно и то же — гидратация не ругается.
+ * Voice bars. Heights are derived from the index, so the server and the
+ * client draw the same thing and hydration stays quiet
  */
 export function Waveform({
   bars = 28,
@@ -27,8 +27,8 @@ export function Waveform({
               "--bar-h": `${22 + ((i * 37) % 78)}%`,
               "--wave-dur": `${0.7 + (i % 5) * 0.12}s`,
               animationDelay: `${i * 45}ms`,
-              /* высота задана всегда: при отключённой анимации полосы
-                 остаются на месте, а не схлопываются в ноль */
+              /* height is always set, so with animation off the bars hold
+                 their shape instead of collapsing */
               height: `${22 + ((i * 37) % 78)}%`,
             } as React.CSSProperties
           }

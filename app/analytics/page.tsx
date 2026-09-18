@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHero, StaleNotice } from "@/components/shell/page-hero";
 import { AnalyticsBoard } from "@/components/analytics/analytics-board";
+import { getStats } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -8,15 +9,15 @@ export default function AnalyticsPage() {
   return (
     <>
       <PageHero
-        title="Аналитика"
-        description="Сколько заявок прошло очередь, какая доля звонков дошла до подтверждённых номеров и какой объём ушёл получателям."
+        title="Analytics"
+        description="How many tokens launched, how much they earned in creator fees and how much of that reached a phone"
       />
       <StaleNotice>
-        Показаны последние подтверждённые цифры, пока аналитика пересчитывается.
+        Showing the last confirmed figures while the numbers recalculate
       </StaleNotice>
 
       <section className="mx-auto w-full px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
-        <AnalyticsBoard />
+        <AnalyticsBoard stats={getStats()} />
       </section>
     </>
   );

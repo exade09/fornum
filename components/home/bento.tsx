@@ -3,27 +3,39 @@ import {
   ArrowRightIcon,
   CheckIcon,
   PhoneIcon,
-  SearchIcon,
   WhatsAppIcon,
 } from "@/components/icons";
-import { ACCOUNT_LAYOUT, DEMO_PAYOUTS, DEMO_REQUESTS } from "@/lib/mock";
-import { Avatar } from "@/components/ui/primitives";
+import { TokenMark } from "@/components/ui/token-mark";
 import { RollingNumber } from "@/components/ui/rolling-number";
+import { Card } from "@/components/ui/primitives";
+import {
+  ACCOUNT_LAYOUT,
+  CALLS,
+  PAYOUTS,
+  TOKENS,
+  compactUsd,
+  getStats,
+  getToken,
+  num,
+  usd,
+} from "@/lib/data";
 import { cn } from "@/lib/cn";
 
 /* ------------------------------------------------------------------ */
-/* Оболочка плитки                                                     */
+/* Tile shell                                                          */
 /* ------------------------------------------------------------------ */
 
 function BentoCard({
   href,
   label,
+  hint,
   row,
   className,
   children,
 }: {
   href: string;
   label: string;
+  hint: string;
   row: number;
   className?: string;
   children: React.ReactNode;
@@ -33,129 +45,97 @@ function BentoCard({
       href={href}
       style={{ "--tile-row": row } as React.CSSProperties}
       className={cn(
-        "group/card relative isolate flex h-[280px] flex-col overflow-hidden rounded-2xl border border-primary/[0.06] bg-card transition-all hover:border-primary/20 hover:shadow-lg",
+        "group/card card-lift card-sheen relative isolate flex h-[280px] flex-col overflow-hidden rounded-2xl border border-primary/[0.06] bg-card",
         className,
       )}
     >
       <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
-      <div className="flex shrink-0 items-center justify-between px-4 py-3">
+      <div className="flex shrink-0 items-center gap-3 px-4 py-3">
         <span className="text-sm font-bold text-primary">{label}</span>
-        <span className="flex items-center gap-1 text-sm text-secondary transition-colors group-hover/card:text-primary">
+        <span className="truncate text-xs text-secondary">{hint}</span>
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-sm text-secondary transition-colors group-hover/card:text-primary">
           Open
-          <ArrowRightIcon className="size-3.5" />
+          <ArrowRightIcon className="size-3.5 transition-transform group-hover/card:translate-x-0.5" />
         </span>
       </div>
     </Link>
   );
 }
 
-/** Общая маска: превью растворяется к нижнему краю, чтобы не спорить с подписью. */
 const FADE =
   "pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent";
 
 /* ------------------------------------------------------------------ */
-/* 1. Queue — стена заявок с диагональным паном                        */
+/* 1. Launch                                                           */
 /* ------------------------------------------------------------------ */
 
-const WALL_COLS = 4; // колонок в блоке
-const WALL_ROWS = 4; // карточек в колонке
-const COL_W = 148;
-const COL_GAP = 12;
-const CARD_H = 92;
-const CARD_GAP = 12;
-const BLOCK_W = WALL_COLS * (COL_W + COL_GAP);
-const BLOCK_H = WALL_ROWS * (CARD_H + CARD_GAP);
-
-function WallCard({ index }: { index: number }) {
-  const item = DEMO_REQUESTS[index % DEMO_REQUESTS.length];
+export function LaunchTile() {
   return (
-    <div
-      className="flex shrink-0 flex-col justify-between rounded-xl border border-primary/[0.06] bg-background/70 p-2.5"
-      /* отступ через margin, а не gap: тогда высота колонки ровно
-         N*(CARD_H+CARD_GAP) и поле тайлится без шва */
-      style={{ width: COL_W, height: CARD_H, marginBottom: CARD_GAP }}
+    <BentoCard
+      href="/launch"
+      label="Launch"
+      hint="Deploy a token, point its fees at a number"
+      row={0}
+      className="sm:col-span-3"
     >
-      <div className="flex items-center gap-2">
-        <Avatar seed={item.ticker} rounded="xl" className="size-6" />
-        <span className="truncate text-[11px] font-bold text-primary">
-          {item.ticker}
+      <div className="absolute inset-0 flex flex-col gap-3 p-4">
+        <span className="text-[10px] font-bold tracking-wider text-secondary">
+          NEW TOKEN
         </span>
-        <span
-          className={cn(
-            "ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-bold",
-            item.agent === "human"
-              ? "bg-dialing/15 text-dialing"
-              : "bg-brand/15 text-brand",
-          )}
-        >
-          {item.agent === "human" ? "LIVE" : "BOT"}
-        </span>
-      </div>
-      <div className="flex items-baseline justify-between">
-        <span className="tnum text-[13px] font-bold text-primary">
-          {item.amount}
-        </span>
-        <span className="tnum text-[10px] text-secondary">#{item.queue}</span>
-      </div>
-    </div>
-  );
-}
 
-function QueueWall() {
-  return (
-    <div className="absolute inset-0">
-      <div
-        className="animate-diag-pan motion-reduce:animate-none absolute top-0 left-0 origin-top-left"
-        style={
-          {
-            "--block-w": `${BLOCK_W}px`,
-            "--block-h": `${BLOCK_H}px`,
-            "--field-scale": 0.92,
-          } as React.CSSProperties
-        }
-      >
-        {/* поле тайлится: 2 блока по горизонтали × 2 по вертикали */}
-        <div className="flex">
-          {Array.from({ length: WALL_COLS * 2 }, (_, col) => (
-            <div
-              key={col}
-              className="flex flex-col"
-              style={{
-                width: COL_W,
-                marginRight: COL_GAP,
-                // смещение нечётных колонок даёт «кирпичную» раскладку
-                // и не ломает вертикальный период поля
-                marginTop: col % 2 ? -(CARD_H + CARD_GAP) / 2 : 0,
-              }}
-            >
-              {Array.from({ length: WALL_ROWS * 2 }, (_, row) => (
-                <WallCard key={row} index={col * 3 + row} />
-              ))}
-            </div>
-          ))}
+        <div className="flex gap-2">
+          <TokenMark symbol="LCAT" size="lg" className="size-12" />
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+            <span className="flex h-7 items-center overflow-hidden rounded-lg border border-primary/[0.06] bg-background/70 px-2.5">
+              <span className="animate-type-query motion-reduce:animate-none block overflow-hidden text-xs whitespace-nowrap text-primary">
+                Ledger Cat
+              </span>
+              <span className="animate-type-caret motion-reduce:animate-none ml-px h-3 w-px bg-primary" />
+            </span>
+            <span className="flex h-7 items-center rounded-lg border border-primary/[0.06] bg-background/70 px-2.5 text-xs text-secondary">
+              LCAT
+            </span>
+          </div>
+        </div>
+
+        <span className="text-[10px] font-bold tracking-wider text-secondary">
+          FEES GO TO
+        </span>
+
+        <div className="flex items-center gap-2 rounded-lg border border-brand/25 bg-brand/[0.07] px-2.5 py-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/15">
+            <WhatsAppIcon className="size-4 text-brand" />
+          </span>
+          <span className="tnum text-xs text-primary">+1 415 ••• 77 12</span>
+          <span className="ml-auto flex items-center gap-1 rounded-full bg-brand/15 px-1.5 py-0.5 text-[9px] font-bold text-brand">
+            <CheckIcon className="size-2.5" />
+            Confirmed
+          </span>
+        </div>
+
+        <div className="mt-auto flex items-center gap-2">
+          <span className="flex h-8 items-center rounded-full bg-primary px-4 text-xs font-bold text-background">
+            Deploy
+          </span>
+          <span className="text-[11px] text-secondary">
+            takes about 20 seconds
+          </span>
         </div>
       </div>
       <div className={FADE} />
-    </div>
-  );
-}
-
-export function QueueTile() {
-  return (
-    <BentoCard href="/queue" label="Queue" row={0} className="sm:col-span-3">
-      <QueueWall />
     </BentoCard>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* 2. Payouts — лента выплат, поднимается ступеньками                  */
+/* 2. Payouts feed                                                     */
 /* ------------------------------------------------------------------ */
 
 const FEED_ROW_H = 64;
 
 function PayoutRow({ index }: { index: number }) {
-  const item = DEMO_PAYOUTS[index % DEMO_PAYOUTS.length];
+  const item = PAYOUTS[index % PAYOUTS.length];
+  const token = getToken(item.tokenId);
   return (
     <div
       className="flex items-center gap-3 rounded-xl border border-primary/[0.06] bg-background/70 px-3"
@@ -163,14 +143,15 @@ function PayoutRow({ index }: { index: number }) {
     >
       <div className="flex min-w-0 flex-col">
         <span className="tnum text-base font-bold text-primary">
-          {item.amount}
+          {usd(item.amount, 0)}
         </span>
         <span className="truncate text-[11px] text-secondary">
-          sent to <span className="tnum text-primary/80">{item.phone}</span>
+          {token?.symbol} fees to{" "}
+          <span className="tnum text-primary/80">{item.phone}</span>
         </span>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <Avatar seed={item.ticker} className="size-7" />
+        <TokenMark symbol={token?.symbol ?? "?"} size="sm" className="size-7" />
         <span className="flex size-7 items-center justify-center rounded-full bg-brand/15">
           <WhatsAppIcon className="size-4 text-brand" />
         </span>
@@ -184,7 +165,13 @@ function PayoutRow({ index }: { index: number }) {
 
 export function PayoutsTile() {
   return (
-    <BentoCard href="/payouts" label="Payouts" row={0} className="sm:col-span-3">
+    <BentoCard
+      href="/payouts"
+      label="Payouts"
+      hint="Every claim lands on a confirmed number"
+      row={0}
+      className="sm:col-span-3"
+    >
       <div className="absolute inset-0 px-3 pt-3">
         <div
           className="animate-feed-rise motion-reduce:animate-none"
@@ -201,115 +188,149 @@ export function PayoutsTile() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3. Analytics — роллинг цифр + сглаженный график                     */
+/* 3. Tokens wall                                                      */
 /* ------------------------------------------------------------------ */
 
-export function AnalyticsTile() {
+const WALL_COLS = 3;
+const WALL_ROWS = 4;
+const COL_W = 132;
+const COL_GAP = 10;
+const CARD_H = 76;
+const CARD_GAP = 10;
+const BLOCK_W = WALL_COLS * (COL_W + COL_GAP);
+const BLOCK_H = WALL_ROWS * (CARD_H + CARD_GAP);
+
+function WallCard({ index }: { index: number }) {
+  const t = TOKENS[index % TOKENS.length];
+  return (
+    <div
+      className="flex shrink-0 flex-col justify-between rounded-xl border border-primary/[0.06] bg-background/70 p-2"
+      /* margin rather than gap keeps the column height at exactly
+         N * (CARD_H + CARD_GAP), which is what makes the field tile */
+      style={{ width: COL_W, height: CARD_H, marginBottom: CARD_GAP }}
+    >
+      <div className="flex items-center gap-1.5">
+        <TokenMark symbol={t.symbol} size="sm" className="size-6" />
+        <span className="truncate text-[10px] font-bold text-primary">
+          {t.symbol}
+        </span>
+      </div>
+      <div className="flex items-baseline justify-between">
+        <span className="tnum text-[12px] font-bold text-brand">
+          {compactUsd(t.feesClaimed)}
+        </span>
+        <span className="tnum text-[9px] text-secondary">
+          {compactUsd(t.marketCap)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function TokensTile() {
   return (
     <BentoCard
-      href="/analytics"
-      label="Analytics"
+      href="/tokens"
+      label="Tokens"
+      hint="Launched here, fees already routed"
       row={1}
       className="sm:col-span-2"
     >
-      <div className="absolute inset-0 flex flex-col p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-secondary">Calls delivered</span>
-          <span className="rounded-full bg-background/70 px-2 py-0.5 text-[10px] text-secondary">
-            30D
-          </span>
-        </div>
-
-        <RollingNumber
-          value="148,260"
-          size={34}
-          className="mt-2 text-[28px] text-primary"
-        />
-
-        <svg
-          viewBox="0 0 220 60"
-          preserveAspectRatio="none"
-          className="mt-auto h-20 w-full"
-          aria-hidden="true"
+      <div className="absolute inset-0">
+        <div
+          className="animate-diag-pan motion-reduce:animate-none absolute top-0 left-0 origin-top-left"
+          style={
+            {
+              "--block-w": `${BLOCK_W}px`,
+              "--block-h": `${BLOCK_H}px`,
+              "--field-scale": 0.95,
+            } as React.CSSProperties
+          }
         >
-          <defs>
-            <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(var(--brand))" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="hsl(var(--brand))" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0 48 C 24 44, 36 22, 58 26 S 92 46, 112 38 S 150 10, 176 18 S 206 34, 220 26"
-            fill="none"
-            stroke="hsl(var(--brand))"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M0 48 C 24 44, 36 22, 58 26 S 92 46, 112 38 S 150 10, 176 18 S 206 34, 220 26 L220 60 L0 60 Z"
-            fill="url(#spark)"
-          />
-        </svg>
+          <div className="flex">
+            {Array.from({ length: WALL_COLS * 2 }, (_, col) => (
+              <div
+                key={col}
+                className="flex flex-col"
+                style={{
+                  width: COL_W,
+                  marginRight: COL_GAP,
+                  marginTop: col % 2 ? -(CARD_H + CARD_GAP) / 2 : 0,
+                }}
+              >
+                {Array.from({ length: WALL_ROWS * 2 }, (_, row) => (
+                  <WallCard key={row} index={col * 3 + row} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className={FADE} />
       </div>
     </BentoCard>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. Create — печатающийся номер и подбор подтверждённых контактов    */
+/* 4. Call queue                                                       */
 /* ------------------------------------------------------------------ */
 
-export function CreateTile() {
-  const matches = [
-    { phone: "+7 912 ••• 48 21", label: "Verified", ok: true },
-    { phone: "+44 7700 ••• 07", label: "Verified", ok: true },
-    { phone: "+91 98 ••• 33 65", label: "Pending", ok: false },
-  ];
+export function CallsTile() {
+  const stats = getStats();
+  const rows = CALLS.filter(
+    (c) => c.status === "dialing" || c.status === "queued" || c.status === "verifying",
+  ).slice(0, 4);
 
   return (
-    <BentoCard href="/create" label="Create" row={1} className="sm:col-span-2">
-      <div className="absolute inset-0 flex flex-col gap-3 p-4">
-        <span className="text-[10px] font-bold tracking-wider text-secondary">
-          CALL GOES TO
-        </span>
-
-        <div className="flex h-10 items-center gap-2 rounded-full border border-primary/[0.06] bg-background/70 px-3">
-          <SearchIcon className="size-4 shrink-0 text-secondary" />
-          <span className="relative overflow-hidden whitespace-nowrap">
-            <span className="animate-type-query motion-reduce:animate-none tnum block overflow-hidden text-sm text-primary">
-              +7 912 345 48 21
-            </span>
+    <BentoCard
+      href="/queue"
+      label="Calls"
+      hint="Live queue with your position"
+      row={1}
+      className="sm:col-span-2"
+    >
+      <div className="absolute inset-0 flex flex-col gap-2 p-4">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[10px] font-bold tracking-wider text-secondary">
+            IN QUEUE
           </span>
-          <span className="animate-type-caret motion-reduce:animate-none h-4 w-px bg-primary" />
+          <span className="tnum text-xl font-bold text-primary">
+            {num(stats.callsInQueue)}
+          </span>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          {matches.map((m, i) => (
+        {rows.map((c, i) => {
+          const token = getToken(c.tokenId);
+          const live = c.status === "dialing";
+          return (
             <div
-              key={m.phone}
-              className="animate-card-in motion-reduce:animate-none flex items-center gap-2 rounded-lg px-1 py-1"
-              style={{ animationDelay: `${300 + i * 140}ms` }}
+              key={c.id}
+              className="animate-card-in motion-reduce:animate-none flex items-center gap-2 rounded-lg border border-primary/[0.06] bg-background/70 px-2 py-1.5"
+              style={{ animationDelay: `${180 + i * 110}ms` }}
             >
-              <span className="flex size-7 items-center justify-center rounded-full bg-brand/15">
-                <WhatsAppIcon className="size-4 text-brand" />
+              <span className="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-brand/15">
+                {live && (
+                  <span className="animate-ring-pulse motion-reduce:animate-none absolute size-6 rounded-full bg-brand/40" />
+                )}
+                <PhoneIcon className="size-3 text-brand" />
               </span>
-              <span className="tnum truncate text-xs text-primary">
-                {m.phone}
+              <span className="truncate text-[11px] font-bold text-primary">
+                {token?.symbol}
+              </span>
+              <span className="tnum truncate text-[10px] text-secondary">
+                {c.phone}
               </span>
               <span
                 className={cn(
-                  "ml-auto flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold",
-                  m.ok
-                    ? "bg-brand/15 text-brand"
-                    : "bg-queued/15 text-queued",
+                  "tnum ml-auto shrink-0 text-[10px] font-bold",
+                  live ? "text-dialing" : "text-queued",
                 )}
               >
-                {m.ok && <CheckIcon className="size-2.5" />}
-                {m.label}
+                {live ? "now" : `#${c.position}`}
               </span>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
       <div className={FADE} />
     </BentoCard>
@@ -317,19 +338,25 @@ export function CreateTile() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 5. Docs — байтовая раскладка аккаунта заявки                        */
+/* 5. Docs                                                             */
 /* ------------------------------------------------------------------ */
 
 export function DocsTile() {
   return (
-    <BentoCard href="/docs" label="Docs" row={1} className="sm:col-span-2">
+    <BentoCard
+      href="/docs"
+      label="Docs"
+      hint="One account per launched token"
+      row={1}
+      className="sm:col-span-2"
+    >
       <div className="absolute inset-0 flex flex-col gap-2 p-4">
         <span className="text-[10px] font-bold tracking-wider text-secondary">
-          REQUEST ACCOUNT
+          TOKEN ACCOUNT
         </span>
         <p className="text-xs leading-snug text-primary">
-          Одна заявка — один PDA. Очередь читается прямо из программы, без
-          посредника.
+          The mint, the creator and the hashed number sit in one account, so
+          fees can only ever go where the launch pointed them
         </p>
 
         <div className="mt-1 overflow-hidden rounded-lg border border-primary/[0.06] bg-background/70 font-mono">
@@ -338,7 +365,7 @@ export function DocsTile() {
             <span className="w-6">LEN</span>
             <span>FIELD</span>
           </div>
-          {ACCOUNT_LAYOUT.slice(0, 6).map((row) => (
+          {ACCOUNT_LAYOUT.slice(0, 5).map((row) => (
             <div
               key={row.off}
               className="flex gap-3 px-2.5 py-[3px] text-[10px] text-primary/80"
@@ -356,7 +383,7 @@ export function DocsTile() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Сетка                                                               */
+/* Grid                                                                */
 /* ------------------------------------------------------------------ */
 
 export function HomeBento() {
@@ -364,10 +391,10 @@ export function HomeBento() {
     <div className="row-stagger">
       <section className="mx-auto w-full px-4 lg:px-6 xl:max-w-7xl">
         <div className="grid gap-3 sm:grid-cols-6">
-          <QueueTile />
+          <LaunchTile />
           <PayoutsTile />
-          <AnalyticsTile />
-          <CreateTile />
+          <TokensTile />
+          <CallsTile />
           <DocsTile />
         </div>
       </section>
@@ -375,16 +402,90 @@ export function HomeBento() {
   );
 }
 
-/* Небольшой хелпер для героя: пульсирующий индикатор активного звонка. */
+/* ------------------------------------------------------------------ */
+/* Hero pieces                                                         */
+/* ------------------------------------------------------------------ */
+
 export function LiveCallBadge() {
+  const stats = getStats();
+  const label =
+    stats.callsLive > 0
+      ? `${num(stats.callsLive)} ${stats.callsLive === 1 ? "call" : "calls"} on the line, ${num(stats.callsInQueue)} waiting`
+      : `${num(stats.callsInQueue)} ${stats.callsInQueue === 1 ? "call" : "calls"} in the queue`;
+
   return (
-    <span className="relative inline-flex items-center gap-2 rounded-full border border-primary/[0.06] bg-card px-3 py-1 text-xs text-secondary">
+    <Link
+      href="/queue"
+      className="group relative inline-flex items-center gap-2 rounded-full border border-primary/[0.08] bg-card px-3 py-1.5 text-xs text-secondary transition-colors hover:border-primary/20 hover:text-primary"
+    >
       <span className="relative flex size-2 items-center justify-center">
         <span className="animate-ring-pulse motion-reduce:animate-none absolute size-2 rounded-full bg-brand" />
         <span className="size-2 rounded-full bg-brand" />
       </span>
       <PhoneIcon className="size-3.5 text-brand" />
-      12 звонков в очереди
-    </span>
+      <span className="tnum">{label}</span>
+      <ArrowRightIcon className="size-3 transition-transform group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
+/** Scrolling strip of the latest launches, duplicated so the loop is seamless */
+export function LaunchMarquee() {
+  const strip = [...TOKENS, ...TOKENS];
+
+  return (
+    <div className="relative overflow-hidden py-2">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-background to-transparent" />
+
+      <div className="animate-marquee motion-reduce:animate-none flex w-max gap-2">
+        {strip.map((t, i) => (
+          <span
+            key={`${t.id}-${i}`}
+            className="flex items-center gap-2 rounded-full border border-primary/[0.06] bg-card px-3 py-1.5"
+          >
+            <TokenMark symbol={t.symbol} size="sm" className="size-5" />
+            <span className="text-xs font-bold text-primary">{t.symbol}</span>
+            <span className="tnum text-xs text-brand">
+              {compactUsd(t.feesClaimed)}
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Headline numbers, driven by real activity unless an override is set */
+export function HeroStats() {
+  const stats = getStats();
+
+  const items: { label: string; value: string; prefix?: string; suffix?: string }[] = [
+    { label: "Tokens launched", value: num(stats.tokensLaunched) },
+    { label: "Fees claimed", value: usd(stats.feesClaimedUsd, 0).slice(1), prefix: "$" },
+    { label: "Paid to numbers", value: usd(stats.paidOutUsd, 0).slice(1), prefix: "$" },
+    { label: "Answer rate", value: `${stats.answerRatePct}`, suffix: "%" },
+  ];
+
+  return (
+    <div className="grid w-full gap-3 sm:grid-cols-4">
+      {items.map((s, i) => (
+        <Card
+          key={s.label}
+          sheen
+          className="animate-card-in motion-reduce:animate-none flex flex-col items-center gap-1 px-4 py-4"
+          style={{ animationDelay: `${i * 90}ms` }}
+        >
+          <RollingNumber
+            value={s.value}
+            size={28}
+            prefix={s.prefix}
+            suffix={s.suffix}
+            className="text-[26px] text-primary"
+          />
+          <span className="text-xs text-secondary">{s.label}</span>
+        </Card>
+      ))}
+    </div>
   );
 }

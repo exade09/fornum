@@ -1,37 +1,37 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal/legal-page";
 
-export const metadata: Metadata = { title: "Политика приватности" };
+export const metadata: Metadata = { title: "Privacy" };
 
 export default function PrivacyPage() {
   return (
     <LegalPage
-      title="Политика приватности"
-      updated="18 сентября 2026"
-      intro="Главная персональная данность здесь — номер телефона. Ниже: что с ним происходит, куда он не попадает и как его убрать."
+      title="Privacy"
+      updated="18 September 2026"
+      intro="The only sensitive thing we handle is a phone number. Here is where it goes, where it does not, and how to remove it"
       sections={[
         {
-          title: "Что попадает в цепочку",
+          title: "What goes on chain",
           body: [
-            "В аккаунт заявки пишется хеш номера с солью, сумма, тип заявки, исполнитель, позиция в очереди и статус. Номер в открытом виде в цепочку не попадает.",
+            "The token account stores the mint, the creator wallet, a salted hash of the recipient number, the amounts claimed and paid, the queue index and the status. The number itself never goes on chain",
           ],
         },
         {
-          title: "Что хранится вне цепочки",
+          title: "What stays off chain",
           body: [
-            "Сопоставление хеша и номера, факт и время согласия, а также технические отметки о попытках дозвона. Доступ к номеру получает исполнитель звонка и только на время выполнения конкретной заявки.",
+            "The mapping between hash and number, the time consent was given, and technical notes about call attempts. Whoever places a call receives the number for the length of that call and nothing more",
           ],
         },
         {
-          title: "Чего мы не делаем",
+          title: "What we do not do",
           body: [
-            "Не продаём и не передаём номера третьим лицам для собственных рассылок, не обогащаем их данными из внешних источников и не связываем между собой номера разных заявок.",
+            "We do not sell numbers, pass them to third parties for their own outreach, enrich them from outside sources, or link numbers across different launches",
           ],
         },
         {
-          title: "Удаление",
+          title: "Removal",
           body: [
-            "Отзыв согласия на странице отписки убирает номер из всех будущих обзвонов. Записи о прошедших выплатах остаются в цепочке — их нельзя удалить технически, но они содержат только хеш.",
+            "Revoking consent removes the number from every future call. Past payouts stay on chain because they cannot be deleted, but they only ever contained the hash",
           ],
         },
       ]}

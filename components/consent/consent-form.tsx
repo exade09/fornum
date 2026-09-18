@@ -39,8 +39,8 @@ export function ConsentForm() {
             reset();
           }}
           options={[
-            { id: "revoke", label: "Отозвать согласие" },
-            { id: "grant", label: "Дать согласие" },
+            { id: "revoke", label: "Stop calls" },
+            { id: "grant", label: "Allow calls" },
           ]}
         />
 
@@ -50,26 +50,26 @@ export function ConsentForm() {
               <CheckIcon className="size-7 text-brand" />
             </span>
             <span className="text-lg font-bold text-primary">
-              {mode === "revoke" ? "Согласие отозвано" : "Согласие подтверждено"}
+              {mode === "revoke" ? "Consent revoked" : "Number confirmed"}
             </span>
             <p className="max-w-[46ch] text-sm text-secondary">
               {mode === "revoke"
-                ? "Звонки на этот номер больше не уйдут. Заявки, адресованные ему, вернут средства создателям."
-                : "Теперь на этот номер могут приходить звонки по заявкам, которые вы выбрали. Отозвать согласие можно в любой момент."}
+                ? "No more calls will go to this number. Fees pointed at it stay in escrow until the launcher names a new one"
+                : "Fees pointed at this number can now be delivered. You can stop calls again at any time from this page"}
             </p>
             <button
               type="button"
               onClick={reset}
               className="mt-2 flex h-10 items-center rounded-full border px-5 text-sm font-bold text-primary transition-colors hover:bg-background/70"
             >
-              Ещё один номер
+              Another number
             </button>
           </div>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-5">
             <label className="flex flex-col gap-2">
               <span className="text-[10px] font-bold tracking-wider text-secondary">
-                НОМЕР В WHATSAPP
+                WHATSAPP NUMBER
               </span>
               <span className="relative flex h-11 items-center">
                 <WhatsAppIcon className="absolute left-4 size-4 text-brand" />
@@ -78,7 +78,7 @@ export function ConsentForm() {
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={stage === "sent"}
                   inputMode="tel"
-                  placeholder="+7 912 345 48 21"
+                  placeholder="+1 415 555 77 12"
                   className="tnum h-11 w-full rounded-full border border-primary/[0.06] bg-field pr-4 pl-11 text-sm text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
                 />
               </span>
@@ -87,7 +87,7 @@ export function ConsentForm() {
             {stage === "sent" && (
               <label className="animate-fade-slide-up motion-reduce:animate-none flex flex-col gap-2">
                 <span className="text-[10px] font-bold tracking-wider text-secondary">
-                  КОД ИЗ СООБЩЕНИЯ
+                  CODE FROM THE MESSAGE
                 </span>
                 <input
                   value={code}
@@ -98,7 +98,7 @@ export function ConsentForm() {
                   className="tnum h-11 w-full max-w-[200px] rounded-full border border-primary/[0.06] bg-field px-5 text-center text-lg tracking-[0.4em] text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
                 />
                 <span className="text-xs text-secondary">
-                  Код отправлен на {phone}. Он подтверждает, что номер ваш.
+                  Sent to {phone}, it proves the number is yours
                 </span>
               </label>
             )}
@@ -113,10 +113,10 @@ export function ConsentForm() {
               )}
             >
               {stage === "idle"
-                ? "Отправить код"
+                ? "Send code"
                 : mode === "revoke"
-                  ? "Отозвать согласие"
-                  : "Подтвердить номер"}
+                  ? "Stop calls to this number"
+                  : "Confirm this number"}
             </button>
           </form>
         )}
@@ -127,17 +127,15 @@ export function ConsentForm() {
         style={{ animationDelay: "60ms" }}
       >
         <span className="text-sm font-bold text-primary">
-          Как мы обращаемся с номером
+          What we do with the number
         </span>
         <p>
-          В цепочку пишется только хеш номера с солью — в открытом виде он не
-          попадает ни в аккаунт заявки, ни в логи. Сопоставление живёт вне
-          цепочки и доступно исполнителю звонка только на время выполнения
-          заявки.
+          Only a salted hash of it goes on chain. The mapping lives off chain and
+          is handed to whoever places the call, for the length of that call
         </p>
         <p>
-          Звонок не уйдёт на номер без активного согласия, даже если заявка уже
-          оплачена: в этом случае эскроу возвращается создателю.
+          A number without active consent is never dialed, even when fees are
+          already sitting in escrow for it
         </p>
       </Card>
     </div>

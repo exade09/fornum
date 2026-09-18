@@ -12,9 +12,9 @@ export function SiteFooter() {
             <span className="text-lg font-bold">Fornum</span>
           </span>
           <span className="text-sm text-secondary">© 2026 Fornum</span>
-          <span className="max-w-[28ch] text-sm text-secondary">
-            Звонки только на подтверждённые номера. Не аффилировано с WhatsApp
-            и Meta.
+          <span className="max-w-[30ch] text-sm text-secondary">
+            We only call numbers that confirmed consent. Not affiliated with
+            WhatsApp or Meta
           </span>
         </div>
 

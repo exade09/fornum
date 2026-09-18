@@ -13,12 +13,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
-  // состояние живёт локально у зрителя, не влияет на SSR-разметку
+  // per viewer preference, kept out of the server rendered markup
   useEffect(() => {
     try {
       setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "1");
     } catch {
-      /* приватный режим — просто оставляем развёрнутым */
+      /* private mode, just stay expanded */
     }
   }, []);
 
@@ -28,7 +28,7 @@ export function Sidebar() {
       try {
         window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
       } catch {
-        /* игнорируем */
+        /* nothing to do */
       }
       return next;
     });
@@ -46,7 +46,7 @@ export function Sidebar() {
           <Link
             href="/"
             className="flex h-16 w-fit items-center rounded-full px-[3px] text-primary transition-colors hover:bg-background-hover/40"
-            aria-label="Fornum — на главную"
+            aria-label="Fornum home"
           >
             <span className="flex size-11 items-center justify-center">
               <FornumMark className="size-7" />
@@ -110,7 +110,7 @@ export function Sidebar() {
           >
             <span className="truncate text-sm font-bold">Fornum</span>
             <span className="truncate text-sm text-secondary">
-              calls on Solana
+              fees to WhatsApp
             </span>
           </span>
         </Link>
@@ -119,7 +119,7 @@ export function Sidebar() {
       <button
         type="button"
         onClick={toggle}
-        aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
+        aria-label={collapsed ? "Expand menu" : "Collapse menu"}
         aria-expanded={!collapsed}
         className={cn(
           "absolute top-4 z-10 hidden size-8 -translate-x-1/2 items-center justify-center rounded-full border bg-background text-primary/60 transition-[left,background-color,color] duration-200 hover:bg-card hover:text-primary xl:flex",

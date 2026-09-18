@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
-/** Базовая обёртка: 24-сетка, stroke currentColor, размер задаётся классом. */
+/** Base wrapper: 24 grid, stroke follows currentColor, size comes from a class */
 function Icon({ children, ...props }: IconProps) {
   return (
     <svg
@@ -163,7 +163,7 @@ export function WhatsAppIcon(props: IconProps) {
   );
 }
 
-/** Логотип Fornum: «F» из телефонной трубки. */
+/** Fornum mark: an F built out of a handset */
 export function FornumMark(props: IconProps) {
   return (
     <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>

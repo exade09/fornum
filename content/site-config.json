@@ -1,0 +1,15 @@
+{
+  "_comment": "Counters are computed from activity. A value set here is shown instead of the computed one. Set it back to null to fall back to the real number. FORNUM_OVERRIDES on the host wins over this file.",
+  "overrides": {
+    "callsInQueue": null,
+    "callsLive": null,
+    "tokensLaunched": null,
+    "feesClaimedUsd": null,
+    "paidOutUsd": null,
+    "answerRatePct": null
+  },
+  "banner": {
+    "enabled": false,
+    "text": ""
+  }
+}

@@ -1,87 +1,99 @@
 # Fornum
 
-Очередь звонков в WhatsApp, оплаченная ончейн в сети Solana.
+Launch a token on Solana and get its creator fees delivered to a phone.
 
-Пользователь создаёт заявку, контракт замораживает оплату в эскроу, заявка встаёт
-в общую очередь. Исполнитель — синтез речи или живой оператор — звонит **только
-на номер с активным согласием владельца**. Эскроу раскрывается по факту дозвона;
-нет согласия или нет дозвона — средства возвращаются создателю.
+Fornum deploys the mint with our treasury set as the fee recipient, so every fee
+the token earns has a destination on file. We claim the fees, call the WhatsApp
+number the launch pointed at, and send the payout in dollars once the owner of
+that number confirms it.
 
-Два сценария:
+Fees only exist for tokens deployed here. A mint created somewhere else pays its
+fees somewhere else, so there is nothing to claim and nobody to pay. That is why
+every token on the site went through the launch form.
 
-- **Алерт по токену** — обзвон подписчиков, которые сами подтвердили номер и
-  подписались на сигналы по конкретному токену.
-- **Перевод комиссий** — отправка комиссий токена на номер получателя со
-  звонком-уведомлением и подтверждением номера перед выплатой.
+## Stack
 
-## Стек
+| Layer      | Choice                                             |
+| ---------- | -------------------------------------------------- |
+| Framework  | Next.js 16, App Router, RSC, Turbopack             |
+| Styling    | Tailwind CSS v4, tokens declared in CSS            |
+| Motion     | CSS keyframes only, no animation library           |
+| Fonts      | Geist Sans and Geist Mono through `next/font`      |
+| Chain      | Solana, program in progress                        |
 
-| Слой       | Решение                                                   |
-| ---------- | --------------------------------------------------------- |
-| Фреймворк  | Next.js 16 (App Router, RSC, Turbopack)                   |
-| Стили      | Tailwind CSS v4 — без конфига, токены через `@theme`      |
-| Анимация   | Только CSS `@keyframes` — ни одной JS-библиотеки          |
-| Шрифты     | Geist Sans / Geist Mono через `next/font`                 |
-| Блокчейн   | Solana (программа в работе)                               |
-
-## Запуск
+## Running it
 
 ```bash
 npm install
 npm run dev
 ```
 
-Прод-сборка: `npm run build`, запуск сервера: `npm start`.
+Production build is `npm run build`, serve it with `npm start`.
 
-## Структура
+## Routes
 
 ```
-app/
-  page.tsx            лендинг: hero + бенто из пяти живых превью
-  queue/              очередь заявок: фильтры, поиск, сортировка
-  request/[id]/       карточка заявки: таймлайн, эскроу, текст звонка
-  payouts/            выплаты и чеки
-  analytics/          метрики протокола по таймфреймам
-  create/             две формы создания заявки
-  flow/               схема движения средств
-  docs/               документация
-  opt-out/            выдача и отзыв согласия на звонки
-  u/[handle]/         профиль: подтверждённые номера и заявки
-  legal/              условия и приватность
-components/
-  shell/              сайдбар, хедер, футер, шапка страницы
-  ui/                 примитивы: карточки, статусы, счётчики, скелетоны
-  home/               плитки бенто с CSS-анимациями
-lib/
-  mock.ts             демо-данные — форма совпадает с будущим ончейн-ответом
+/                 hero, live counters, bento of five product tiles
+/launch           deploy a token and point its fees at a number
+/tokens           everything launched here, fees and recipients
+/queue            call queue with live position
+/token/[id]       one token: fees, lifecycle, calls, on chain data
+/payouts          payouts and receipts
+/analytics        totals by timeframe
+/flow             where the money goes, step by step
+/docs             how the whole thing works
+/opt-out          give or revoke consent for a number
+/u/[handle]       launcher profile with confirmed numbers
+/admin            pin the counters shown on the site
+/legal/*          terms and privacy
 ```
 
-## Дизайн-система
+## Counters
 
-Токены живут в [`app/globals.css`](app/globals.css) двумя слоями. Сырой —
-именованная палитра от `ivory` до `jet`. Семантический — `--background`,
-`--card`, `--primary`, `--border`, `--brand` и остальные, записанные HSL-тройками
-без обёртки: за счёт этого работают `text-primary/70` и `border-primary/[0.06]`.
+Every number on the site is computed from activity in `lib/data.ts`. To show a
+different figure, pin it:
 
-Тёмная тема — инверсия: `--primary` и `--accent` переворачиваются, поэтому одна
-и та же кнопка белая на чёрном и чёрная на белом без отдельных классов.
+- edit `content/site-config.json` and push, the deploy picks it up
+- or set `FORNUM_OVERRIDES` on the host to the same object, which wins over the
+  file
 
-Все анимации уважают `prefers-reduced-motion`: глобальное правило сводит
-длительности к нулю, а компоненты с важными данными (счётчики, полосы прогресса)
-дублируют конечное состояние в inline-стиле, чтобы не показывать нули.
+A key left as `null` falls back to the computed value, so nothing is ever
+invented by accident. `/admin` has a form that builds the JSON for you and shows
+which counters are currently pinned.
 
-## Приватность номеров
+```json
+{ "overrides": { "callsInQueue": 2, "callsLive": 1 } }
+```
 
-В цепочку пишется только хеш номера с солью. Сопоставление хеша и номера живёт
-вне цепочки и доступно исполнителю звонка на время выполнения заявки. Отзыв
-согласия убирает номер из всех будущих обзвонов.
+## Icons
 
-## Деплой
+Token art is optional. When a launch has no image, `TokenMark` draws one from the
+ticker: hue, gradient angle and pattern all come from the symbol, so the same
+token looks identical everywhere and no slot is ever empty. Wallet marks are
+inline SVG, nothing depends on a remote asset.
 
-Vercel, zero-config: сборка `next build`, ничего доопределять не нужно.
+## Design system
 
-## Статус
+Tokens live in `app/globals.css` in two layers. The raw layer is a named palette
+from `ivory` to `jet`. The semantic layer holds `--background`, `--card`,
+`--primary`, `--border`, `--brand` and the rest as bare HSL triples, which is
+what makes `text-primary/70` and `border-primary/[0.06]` work.
 
-Интерфейс готов и работает на демо-данных из `lib/mock.ts`. В работе:
-Anchor-программа (PDA заявки, эскроу, инструкции `create` / `confirm` /
-`settle` / `refund`), подключение кошелька и стрим очереди вместо моков.
+Dark mode inverts `--primary` and `--accent`, so one button class reads white on
+black and black on white.
+
+Motion honours `prefers-reduced-motion`. Components that carry real data, such as
+digit reels and progress bars, also write their end state inline, so turning
+animation off never shows a wrong number.
+
+## Privacy
+
+Only a salted hash of a phone number goes on chain. The mapping lives off chain
+and is handed to whoever places the call, for the length of that call. Revoking
+consent removes the number from every future call.
+
+## Status
+
+The interface is complete and runs on demo data from `lib/data.ts`. Next up: the
+Anchor program with the token account and escrow, wallet signing, and a live
+stream of the queue.

@@ -1,6 +1,6 @@
 /**
- * Шапка внутренней страницы: тёмная карточка с заголовком, описанием
- * и опциональным действием справа. Повторяется на всех разделах.
+ * Inner page header: one card with a title, a line of context and an optional
+ * action on the right
  */
 export function PageHero({
   title,
@@ -30,7 +30,7 @@ export function PageHero({
   );
 }
 
-/** Честный статус вместо спиннера — как в прототипе. */
+/** A plain status line instead of a spinner */
 export function StaleNotice({ children }: { children: React.ReactNode }) {
   return (
     <p className="mx-auto w-full px-4 pt-6 text-sm text-secondary lg:px-6 xl:max-w-7xl">

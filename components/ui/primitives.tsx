@@ -1,7 +1,8 @@
 import { cn } from "@/lib/cn";
+import type { CallStatus, TokenStatus } from "@/lib/data";
 
 /* ------------------------------------------------------------------ */
-/* Карточка                                                            */
+/* Card                                                                */
 /* ------------------------------------------------------------------ */
 
 export function Card({
@@ -24,32 +25,25 @@ export function Card({
 }
 
 /* ------------------------------------------------------------------ */
-/* Статусы                                                             */
+/* Status chips                                                        */
 /* ------------------------------------------------------------------ */
 
-export type Status = "queued" | "verifying" | "dialing" | "paid" | "refunded";
-
-const STATUS_STYLE: Record<Status, { label: string; className: string }> = {
-  queued: { label: "В очереди", className: "bg-queued/15 text-queued" },
-  verifying: {
-    label: "Ждёт подтверждения",
-    className: "bg-warning/15 text-warning",
-  },
-  dialing: { label: "Дозвон", className: "bg-dialing/15 text-dialing" },
-  paid: { label: "Выплачено", className: "bg-brand/15 text-brand" },
-  refunded: { label: "Возврат", className: "bg-primary/10 text-secondary" },
+const CALL_STATUS: Record<CallStatus, { label: string; className: string }> = {
+  queued: { label: "In queue", className: "bg-queued/15 text-queued" },
+  verifying: { label: "Confirming", className: "bg-warning/15 text-warning" },
+  dialing: { label: "On the call", className: "bg-dialing/15 text-dialing" },
+  answered: { label: "Answered", className: "bg-brand/15 text-brand" },
+  missed: { label: "No answer", className: "bg-primary/10 text-secondary" },
 };
 
-export function StatusChip({
+export function CallChip({
   status,
-  pulse = false,
   className,
 }: {
-  status: Status;
-  pulse?: boolean;
+  status: CallStatus;
   className?: string;
 }) {
-  const s = STATUS_STYLE[status];
+  const s = CALL_STATUS[status];
   return (
     <span
       className={cn(
@@ -58,7 +52,7 @@ export function StatusChip({
         className,
       )}
     >
-      {pulse && (
+      {status === "dialing" && (
         <span className="animate-breathe motion-reduce:animate-none size-1.5 rounded-full bg-current" />
       )}
       {s.label}
@@ -66,8 +60,35 @@ export function StatusChip({
   );
 }
 
+const TOKEN_STATUS: Record<TokenStatus, { label: string; className: string }> = {
+  live: { label: "Live", className: "bg-brand/15 text-brand" },
+  graduated: { label: "Graduated", className: "bg-dialing/15 text-dialing" },
+  pending: { label: "Fees waiting", className: "bg-queued/15 text-queued" },
+};
+
+export function TokenChip({
+  status,
+  className,
+}: {
+  status: TokenStatus;
+  className?: string;
+}) {
+  const s = TOKEN_STATUS[status];
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-bold",
+        s.className,
+        className,
+      )}
+    >
+      {s.label}
+    </span>
+  );
+}
+
 /* ------------------------------------------------------------------ */
-/* Метка «ключ — значение»                                             */
+/* Label and value                                                     */
 /* ------------------------------------------------------------------ */
 
 export function Field({
@@ -83,7 +104,7 @@ export function Field({
 }) {
   return (
     <div className={cn("flex flex-col gap-0.5", className)}>
-      <span className="text-[10px] font-bold tracking-wider text-secondary">
+      <span className="text-[10px] font-bold tracking-wider text-secondary uppercase">
         {label}
       </span>
       <span
@@ -102,14 +123,14 @@ export function Field({
 }
 
 /* ------------------------------------------------------------------ */
-/* Полоса прогресса                                                    */
+/* Progress                                                            */
 /* ------------------------------------------------------------------ */
 
 export function Progress({
   value,
   className,
 }: {
-  /** 0…1 */
+  /** 0 to 1 */
   value: number;
   className?: string;
 }) {
@@ -128,7 +149,10 @@ export function Progress({
       <div
         className="animate-progress-grow motion-reduce:animate-none h-full origin-left rounded-full bg-brand"
         style={
-          { "--progress": clamped, transform: `scaleX(${clamped})` } as React.CSSProperties
+          {
+            "--progress": clamped,
+            transform: `scaleX(${clamped})`,
+          } as React.CSSProperties
         }
       />
     </div>
@@ -136,7 +160,7 @@ export function Progress({
 }
 
 /* ------------------------------------------------------------------ */
-/* Скелетон                                                            */
+/* Skeleton                                                            */
 /* ------------------------------------------------------------------ */
 
 export function Skeleton({ className }: { className?: string }) {
@@ -153,46 +177,7 @@ export function Skeleton({ className }: { className?: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Аватар-заглушка: детерминированный градиент по строке                */
-/* ------------------------------------------------------------------ */
-
-export function hueFrom(seed: string) {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360;
-  return h;
-}
-
-export function Avatar({
-  seed,
-  className,
-  rounded = "full",
-}: {
-  seed: string;
-  className?: string;
-  rounded?: "full" | "xl";
-}) {
-  const hue = hueFrom(seed);
-  return (
-    <span
-      aria-hidden="true"
-      /* block обязателен: у inline-span ширина и высота игнорируются,
-         а аватар встречается и вне флекс-контейнеров */
-      className={cn(
-        "block shrink-0",
-        rounded === "full" ? "rounded-full" : "rounded-xl",
-        className,
-      )}
-      style={{
-        background: `linear-gradient(140deg, hsl(${hue} 70% 55%), hsl(${
-          (hue + 48) % 360
-        } 65% 35%))`,
-      }}
-    />
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Пустое состояние                                                    */
+/* Empty state                                                         */
 /* ------------------------------------------------------------------ */
 
 export function EmptyState({
@@ -207,7 +192,7 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-primary/10 px-6 py-16 text-center">
       <span className="text-sm font-bold text-primary">{title}</span>
-      <p className="max-w-[42ch] text-sm text-secondary">{description}</p>
+      <p className="max-w-[46ch] text-sm text-secondary">{description}</p>
       {action}
     </div>
   );

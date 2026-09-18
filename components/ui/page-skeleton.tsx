@@ -1,6 +1,6 @@
 import { Card, Skeleton } from "@/components/ui/primitives";
 
-/** Скелет внутренней страницы: шапка + сетка карточек. */
+/** Placeholder for an inner page: header plus a grid of cards */
 export function PageSkeleton({
   cards = 6,
   columns = "sm:grid-cols-2 xl:grid-cols-3",

@@ -17,7 +17,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // закрываем drawer при переходе и блокируем прокрутку под ним
+  // close the drawer on navigation and lock the page behind it
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -32,7 +32,7 @@ export function SiteHeader() {
   return (
     <>
       <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center gap-4 px-4 lg:px-6">
-        {/* подложка и волосяная линия вместо border — чтобы не прыгала высота */}
+        {/* backdrop plus a hairline instead of a border, so the height never shifts */}
         <div className="bar-solid pointer-events-none absolute inset-0 -z-10">
           <div className="absolute inset-x-0 bottom-0 h-px bg-border" />
         </div>
@@ -40,21 +40,21 @@ export function SiteHeader() {
         <Link
           href="/"
           className="flex size-10 shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-background-hover/40 nav:hidden"
-          aria-label="Fornum — на главную"
+          aria-label="Fornum home"
         >
           <FornumMark className="size-7" />
         </Link>
 
-        {/* левый распорщик — чтобы поиск стоял по центру строки */}
+        {/* left spacer keeps the search box centered in the row */}
         <div className="hidden flex-1 lg:block" />
 
         <div className="hidden min-w-0 flex-[2] justify-center lg:flex">
           <label className="relative flex h-11 w-full max-w-[560px] items-center">
             <SearchIcon className="pointer-events-none absolute left-4 size-4 text-secondary" />
-            <span className="sr-only">Поиск по заявкам, номерам и токенам</span>
+            <span className="sr-only">Search tokens, calls and wallets</span>
             <input
               type="search"
-              placeholder="Search requests, tokens, wallets"
+              placeholder="Search tokens, calls, wallets"
               className="h-11 w-full rounded-full bg-card pr-4 pl-11 text-sm text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
             />
           </label>
@@ -62,16 +62,16 @@ export function SiteHeader() {
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-2">
           <Link
-            href="/create"
+            href="/launch"
             className="flex h-10 items-center rounded-full bg-primary px-5 text-sm font-bold text-background transition-colors hover:bg-primary-hover"
           >
-            Create
+            Launch
           </Link>
           <ConnectWallet className="hidden sm:flex" />
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            aria-label="Открыть меню"
+            aria-label="Open menu"
             className="flex size-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-card nav:hidden"
           >
             <MenuIcon className="size-6" />
@@ -83,7 +83,7 @@ export function SiteHeader() {
         <div className="fixed inset-0 z-70 nav:hidden">
           <button
             type="button"
-            aria-label="Закрыть меню"
+            aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
             className="absolute inset-0 bg-black/60"
           />
@@ -93,7 +93,7 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                aria-label="Закрыть меню"
+                aria-label="Close menu"
                 className="flex size-9 items-center justify-center rounded-full text-primary transition-colors hover:bg-card"
               >
                 <CloseIcon className="size-5" />

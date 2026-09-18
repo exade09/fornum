@@ -6,6 +6,7 @@ import {
   FlowIcon,
   HomeIcon,
   PayoutIcon,
+  PhoneIcon,
   QueueIcon,
 } from "@/components/icons";
 
@@ -17,10 +18,11 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/queue", label: "Queue", icon: QueueIcon },
+  { href: "/launch", label: "Launch", icon: CreateIcon },
+  { href: "/tokens", label: "Tokens", icon: QueueIcon },
+  { href: "/queue", label: "Calls", icon: PhoneIcon },
   { href: "/payouts", label: "Payouts", icon: PayoutIcon },
   { href: "/analytics", label: "Analytics", icon: AnalyticsIcon },
-  { href: "/create", label: "Create", icon: CreateIcon },
   { href: "/flow", label: "Flow", icon: FlowIcon },
   { href: "/docs", label: "Docs", icon: DocsIcon },
 ];
@@ -29,15 +31,16 @@ export const FOOTER_LINKS = [
   {
     title: "Product",
     links: [
-      { href: "/queue", label: "Queue" },
+      { href: "/launch", label: "Launch" },
+      { href: "/tokens", label: "Tokens" },
+      { href: "/queue", label: "Calls" },
       { href: "/payouts", label: "Payouts" },
-      { href: "/analytics", label: "Analytics" },
-      { href: "/create", label: "Create" },
     ],
   },
   {
     title: "Protocol",
     links: [
+      { href: "/analytics", label: "Analytics" },
       { href: "/flow", label: "Flow" },
       { href: "/docs", label: "Docs" },
     ],
@@ -47,7 +50,7 @@ export const FOOTER_LINKS = [
     links: [
       { href: "/legal/terms", label: "Terms" },
       { href: "/legal/privacy", label: "Privacy" },
-      { href: "/opt-out", label: "Opt out" },
+      { href: "/opt-out", label: "Consent" },
     ],
   },
 ];

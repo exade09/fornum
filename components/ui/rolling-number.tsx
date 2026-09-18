@@ -1,21 +1,23 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Число с «прокруткой» разрядов: каждая цифра — лента 0…9,
- * которая уезжает на нужную позицию. Чистый CSS, без счётчиков в JS.
+ * A number whose digits roll into place. Each digit is a 0 to 9 strip that
+ * slides to its position, pure CSS with no counters in JS
  */
 export function RollingNumber({
   value,
   size = 34,
   className,
   prefix,
+  suffix,
 }: {
-  /** уже отформатированная строка, например "321,000.00" */
+  /** already formatted, for example "321,000.00" */
   value: string;
-  /** высота строки разряда в px — она же шаг прокрутки */
+  /** height of one digit in px, which is also the roll step */
   size?: number;
   className?: string;
   prefix?: string;
+  suffix?: string;
 }) {
   const chars = value.split("");
   let digitIndex = 0;
@@ -24,7 +26,7 @@ export function RollingNumber({
     <span
       className={cn("tnum inline-flex items-end font-bold", className)}
       style={{ lineHeight: `${size}px` }}
-      aria-label={prefix ? `${prefix}${value}` : value}
+      aria-label={`${prefix ?? ""}${value}${suffix ?? ""}`}
     >
       {prefix && <span aria-hidden="true">{prefix}</span>}
 
@@ -44,15 +46,15 @@ export function RollingNumber({
             className="relative inline-block overflow-hidden align-bottom"
             style={{ height: size }}
           >
-            {/* невидимая цифра задаёт ширину разряда по реальной метрике шрифта */}
+            {/* an invisible digit sets the column width from the real font metrics */}
             <span className="invisible" style={{ lineHeight: `${size}px` }}>
               {ch}
             </span>
             <span
               className="animate-digit-roll motion-reduce:animate-none absolute inset-x-0 top-0 flex flex-col items-center"
-              /* transform задан и в inline-стиле: если анимация отключена
-                 (prefers-reduced-motion), лента всё равно стоит на нужной
-                 цифре, а не показывает ноль */
+              /* the end transform is also inline, so with animation off
+                 (prefers-reduced-motion) the strip still rests on the right
+                 digit instead of showing a zero */
               style={
                 {
                   "--roll": `${-Number(ch) * size}px`,
@@ -70,6 +72,8 @@ export function RollingNumber({
           </span>
         );
       })}
+
+      {suffix && <span aria-hidden="true">{suffix}</span>}
     </span>
   );
 }
