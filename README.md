@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fornum
 
-## Getting Started
+Очередь звонков в WhatsApp, оплаченная ончейн в сети Solana.
 
-First, run the development server:
+Пользователь создаёт заявку, контракт замораживает оплату в эскроу, заявка встаёт
+в общую очередь. Исполнитель — синтез речи или живой оператор — звонит **только
+на номер с активным согласием владельца**. Эскроу раскрывается по факту дозвона;
+нет согласия или нет дозвона — средства возвращаются создателю.
+
+Два сценария:
+
+- **Алерт по токену** — обзвон подписчиков, которые сами подтвердили номер и
+  подписались на сигналы по конкретному токену.
+- **Перевод комиссий** — отправка комиссий токена на номер получателя со
+  звонком-уведомлением и подтверждением номера перед выплатой.
+
+## Стек
+
+| Слой       | Решение                                                   |
+| ---------- | --------------------------------------------------------- |
+| Фреймворк  | Next.js 16 (App Router, RSC, Turbopack)                   |
+| Стили      | Tailwind CSS v4 — без конфига, токены через `@theme`      |
+| Анимация   | Только CSS `@keyframes` — ни одной JS-библиотеки          |
+| Шрифты     | Geist Sans / Geist Mono через `next/font`                 |
+| Блокчейн   | Solana (программа в работе)                               |
+
+## Запуск
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Прод-сборка: `npm run build`, запуск сервера: `npm start`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Структура
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+  page.tsx            лендинг: hero + бенто из пяти живых превью
+  queue/              очередь заявок: фильтры, поиск, сортировка
+  request/[id]/       карточка заявки: таймлайн, эскроу, текст звонка
+  payouts/            выплаты и чеки
+  analytics/          метрики протокола по таймфреймам
+  create/             две формы создания заявки
+  flow/               схема движения средств
+  docs/               документация
+  opt-out/            выдача и отзыв согласия на звонки
+  u/[handle]/         профиль: подтверждённые номера и заявки
+  legal/              условия и приватность
+components/
+  shell/              сайдбар, хедер, футер, шапка страницы
+  ui/                 примитивы: карточки, статусы, счётчики, скелетоны
+  home/               плитки бенто с CSS-анимациями
+lib/
+  mock.ts             демо-данные — форма совпадает с будущим ончейн-ответом
+```
 
-## Learn More
+## Дизайн-система
 
-To learn more about Next.js, take a look at the following resources:
+Токены живут в [`app/globals.css`](app/globals.css) двумя слоями. Сырой —
+именованная палитра от `ivory` до `jet`. Семантический — `--background`,
+`--card`, `--primary`, `--border`, `--brand` и остальные, записанные HSL-тройками
+без обёртки: за счёт этого работают `text-primary/70` и `border-primary/[0.06]`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Тёмная тема — инверсия: `--primary` и `--accent` переворачиваются, поэтому одна
+и та же кнопка белая на чёрном и чёрная на белом без отдельных классов.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Все анимации уважают `prefers-reduced-motion`: глобальное правило сводит
+длительности к нулю, а компоненты с важными данными (счётчики, полосы прогресса)
+дублируют конечное состояние в inline-стиле, чтобы не показывать нули.
 
-## Deploy on Vercel
+## Приватность номеров
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+В цепочку пишется только хеш номера с солью. Сопоставление хеша и номера живёт
+вне цепочки и доступно исполнителю звонка на время выполнения заявки. Отзыв
+согласия убирает номер из всех будущих обзвонов.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Деплой
+
+Vercel, zero-config: сборка `next build`, ничего доопределять не нужно.
+
+## Статус
+
+Интерфейс готов и работает на демо-данных из `lib/mock.ts`. В работе:
+Anchor-программа (PDA заявки, эскроу, инструкции `create` / `confirm` /
+`settle` / `refund`), подключение кошелька и стрим очереди вместо моков.

@@ -1,26 +1,786 @@
 @import "tailwindcss";
 
+/* dark-режим по классу на <html>, как у прототипа (не по prefers-color-scheme) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   1. СЫРОЙ СЛОЙ — именованная палитра. Только HSL-тройки, без hsl().
+      Порядок: светлое → тёмное. Ничего в интерфейсе не ссылается сюда
+      напрямую, только через семантический слой ниже.
+   ========================================================================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --palette-ivory: 40 18% 97%;
+  --palette-nimbus: 228 22% 95%;
+  --palette-dove: 222 19% 86%;
+  --palette-pewter: 213 12% 70%;
+  --palette-fog: 216 4% 51%;
+  --palette-evenfall: 214 16% 28%;
+  --palette-steel: 216 4% 22%;
+  --palette-ash: 216 5% 19%;
+  --palette-ink: 213 11% 16%;
+  --palette-umbra: 221 12% 14%;
+  --palette-charcoal: 0 0% 10%;
+  --palette-codeblock: 0 0% 7%;
+  --palette-jet: 0 0% 4%;
+  --palette-midnight: 214 58% 9%;
+
+  /* акценты Fornum */
+  --palette-signal: 142 70% 45%; /* зелёный — деньги, дозвон, успех */
+  --palette-mint: 142 69% 58%;
+  --palette-dial: 199 89% 48%; /* синий — звонок в процессе */
+  --palette-sunset: 22 100% 52%; /* оранжевый — очередь, ожидание */
+  --palette-dusk: 263 70% 50%;
 }
 
+/* ==========================================================================
+   2. СЕМАНТИЧЕСКИЙ СЛОЙ — светлая тема
+   ========================================================================== */
+:root {
+  --background: 0 0% 100%;
+  --background-hover: 222 19% 86%;
+  --foreground: 0 0% 4%;
+  --foreground-hover: 221 12% 14%;
+
+  /* primary/accent инвертируются в тёмной теме — за счёт этого одна и та же
+     CTA-кнопка белая на чёрном и чёрная на белом без отдельных классов */
+  --primary: 0 0% 4%;
+  --primary-hover: 221 12% 14%;
+  --secondary: 216 4% 51%;
+  --secondary-hover: 213 12% 70%;
+  --accent: 0 0% 4%;
+  --accent-hover: 221 12% 14%;
+
+  --card: 40 18% 97%;
+  --border: 222 19% 86%;
+  --input: 0 0% 100%;
+  --field: 0 0% 100%;
+
+  --brand: 142 70% 45%;
+  --money: 142 70% 45%;
+  --dialing: 199 89% 48%;
+  --queued: 22 100% 52%;
+  --error: 0 84% 60%;
+  --success: 142 71% 45%;
+  --warning: 45 93% 47%;
+  --info: 214 49% 74%;
+
+  --radius: 0.5rem;
+  --site-header-h: 4rem;
+  --page-hero-h: 16rem;
+
+  --scroll-size: 6px;
+  --scroll-thumb-color: 222 19% 86%;
+  --scroll-track-color: 0 0% 100%;
+}
+
+/* 2b. Тёмная тема — переопределяем ТОЛЬКО то, что меняется */
+.dark {
+  --background: 0 0% 4%;
+  --background-hover: 221 12% 14%;
+  --foreground: 222 19% 86%;
+  --foreground-hover: 0 0% 100%;
+
+  --primary: 0 0% 100%;
+  --primary-hover: 40 18% 97%;
+  --accent: 0 0% 100%;
+  --accent-hover: 40 18% 97%;
+
+  --card: 0 0% 10%;
+  --border: 221 12% 14%;
+  --input: 216 4% 51%;
+  --field: 0 0% 8%;
+
+  --brand: 142 69% 58%;
+  --money: 142 69% 58%;
+  --error: 0 72% 65%;
+  --success: 142 69% 58%;
+  --warning: 45 93% 58%;
+
+  --scroll-thumb-color: 0 0% 4%;
+  --scroll-track-color: 0 0% 10%;
+}
+
+/* ==========================================================================
+   3. ТОКЕНЫ TAILWIND — пробрасываем семантику в утилиты.
+      Запись через hsl(var(--x)) даёт бесплатную прозрачность:
+      text-primary/70, border-primary/[0.06] и т.д.
+   ========================================================================== */
+/* inline — чтобы значение подставлялось в утилиту как есть и .dark работал
+   независимо от того, на каком элементе висит класс темы */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: hsl(var(--background));
+  --color-background-hover: hsl(var(--background-hover));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-hover: hsl(var(--primary-hover));
+  --color-secondary: hsl(var(--secondary));
+  --color-accent: hsl(var(--accent));
+  --color-card: hsl(var(--card));
+  --color-border: hsl(var(--border));
+  --color-field: hsl(var(--field));
+
+  --color-brand: hsl(var(--brand));
+  --color-money: hsl(var(--money));
+  --color-dialing: hsl(var(--dialing));
+  --color-queued: hsl(var(--queued));
+  --color-error: hsl(var(--error));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-info: hsl(var(--info));
+
+  --color-ivory: hsl(var(--palette-ivory));
+  --color-nimbus: hsl(var(--palette-nimbus));
+  --color-dove: hsl(var(--palette-dove));
+  --color-pewter: hsl(var(--palette-pewter));
+  --color-fog: hsl(var(--palette-fog));
+  --color-evenfall: hsl(var(--palette-evenfall));
+  --color-steel: hsl(var(--palette-steel));
+  --color-ash: hsl(var(--palette-ash));
+  --color-ink: hsl(var(--palette-ink));
+  --color-umbra: hsl(var(--palette-umbra));
+  --color-charcoal: hsl(var(--palette-charcoal));
+  --color-codeblock: hsl(var(--palette-codeblock));
+  --color-jet: hsl(var(--palette-jet));
+  --color-midnight: hsl(var(--palette-midnight));
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* статические токены — не зависят от темы */
+@theme {
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+
+  /* точка переключения сайдбара «иконки ↔ иконки+подписи» */
+  --breakpoint-nav: 1220px;
+
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-decel: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   4. BASE
+   ========================================================================== */
+@layer base {
+  html {
+    background-color: hsl(var(--background));
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--primary));
+    font-family: var(--font-sans);
+  }
+
+  /* цвет границ по умолчанию — не нужно писать border-border каждый раз */
+  *,
+  ::after,
+  ::before {
+    border-color: hsl(var(--border));
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
+  }
+
+  /* все числа — моноширинными цифрами, чтобы суммы и очередь не дёргались */
+  .tnum,
+  table,
+  time {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  ::-webkit-scrollbar {
+    width: var(--scroll-size);
+    height: var(--scroll-size);
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--scroll-track-color));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--scroll-thumb-color));
+    border-radius: 999px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0s !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-delay: 0s !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ==========================================================================
+   5. KEYFRAMES — вся анимация на CSS, без JS-библиотек
+   ========================================================================== */
+@property --angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes sectionIn {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* горизонтальная бегущая лента: контент дублируется, уезжает ровно на -50% */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marqueeY {
+  0% {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+/* диагональный пан стены карточек */
+@keyframes diagPan {
+  0% {
+    transform: scale(var(--field-scale, 1))
+      translate3d(calc(var(--block-w) * -1), calc(var(--block-h) * -1), 0);
+  }
+  to {
+    transform: scale(var(--field-scale, 1))
+      translate3d(0, calc(var(--block-h) * -2), 0);
+  }
+}
+
+@keyframes diagPanReverse {
+  0% {
+    transform: scale(var(--field-scale, 1))
+      translate3d(0, calc(var(--block-h) * -2), 0);
+  }
+  to {
+    transform: scale(var(--field-scale, 1))
+      translate3d(calc(var(--block-w) * -1), calc(var(--block-h) * -1), 0);
+  }
+}
+
+/* лента событий: сдвиг ступеньками с паузами — живой поток без JS */
+@keyframes feedRise {
+  0%,
+  1.6% {
+    transform: translateY(0);
+  }
+  3.2%,
+  12.5% {
+    transform: translateY(calc(var(--feed-step) * -1));
+  }
+  14.1%,
+  16.6% {
+    transform: translateY(calc(var(--feed-step) * -2));
+  }
+  18.2%,
+  23.4% {
+    transform: translateY(calc(var(--feed-step) * -3));
+  }
+  25%,
+  42.9% {
+    transform: translateY(calc(var(--feed-step) * -4));
+  }
+  44.5%,
+  45.7% {
+    transform: translateY(calc(var(--feed-step) * -5));
+  }
+  47.3%,
+  59.8% {
+    transform: translateY(calc(var(--feed-step) * -6));
+  }
+  61.4%,
+  67.9% {
+    transform: translateY(calc(var(--feed-step) * -7));
+  }
+  69.5%,
+  79.8% {
+    transform: translateY(calc(var(--feed-step) * -8));
+  }
+  81.4%,
+  to {
+    transform: translateY(calc(var(--feed-step) * -9));
+  }
+}
+
+/* роллинг цифр счётчика */
+@keyframes digitRoll {
+  0% {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--roll, 0%));
+  }
+}
+
+@keyframes streamPan {
+  0% {
+    transform: translateX(calc(var(--tile) * -1));
+  }
+  to {
+    transform: translateX(calc(var(--tile) * -2));
+  }
+}
+
+/* бегущий пунктир на линиях графа потока средств */
+@keyframes flowDash {
+  0% {
+    background-position: 0 0;
+  }
+  to {
+    background-position: var(--flow-period, 16px) 0;
+  }
+}
+
+@keyframes borderBeam {
+  to {
+    --angle: 360deg;
+  }
+}
+
+@keyframes heroShimmer {
+  0% {
+    background-position: 150%;
+  }
+  to {
+    background-position: -150%;
+  }
+}
+
+/* печатающийся запрос в поиске + мигающая каретка */
+@keyframes typeQuery {
+  0%,
+  6% {
+    width: 0;
+  }
+  42%,
+  92% {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
+}
+
+@keyframes typeCaret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes orbFloat {
+  0%,
+  to {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* эквалайзер голосовой волны */
+@keyframes waveform {
+  0%,
+  to {
+    height: calc(var(--bar-h, 100%) * 0.4);
+  }
+  50% {
+    height: var(--bar-h, 100%);
+  }
+}
+
+@keyframes barGrow {
+  0% {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* пульсирующее кольцо вокруг активного звонка */
+@keyframes ringPulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ==========================================================================
+   6. УТИЛИТЫ
+   ========================================================================== */
+@utility bar-solid {
+  background: hsl(var(--background));
+}
+
+@utility animate-section-in {
+  animation: 0.62s var(--ease-decel) both sectionIn;
+}
+
+@utility animate-card-in {
+  animation: 0.38s var(--ease-decel) both cardIn;
+}
+
+@utility animate-pop-in {
+  animation: 0.32s var(--ease-decel) both popIn;
+}
+
+@utility animate-fade-slide-up {
+  animation: 0.5s var(--ease-decel) both fadeSlideUp;
+}
+
+@utility animate-marquee {
+  animation: 30s linear infinite marquee;
+}
+
+@utility animate-marquee-y {
+  animation: 34s linear infinite marqueeY;
+}
+
+@utility animate-diag-pan {
+  animation: 48s linear infinite diagPan;
+}
+
+@utility animate-diag-pan-reverse {
+  animation: 61s linear infinite diagPanReverse;
+}
+
+@utility animate-feed-rise {
+  animation: 22s var(--ease-decel) infinite feedRise;
+}
+
+@utility animate-digit-roll {
+  animation: 0.7s var(--ease-decel) both digitRoll;
+}
+
+@utility animate-stream-pan {
+  animation: 24s linear infinite streamPan;
+}
+
+@utility animate-flow-dash {
+  animation: 1.1s linear infinite flowDash;
+}
+
+@utility animate-border-beam {
+  animation: 4s linear infinite borderBeam;
+}
+
+@utility animate-hero-shimmer {
+  animation: 3.4s linear infinite heroShimmer;
+}
+
+@utility animate-type-query {
+  animation: 7s steps(28, end) infinite typeQuery;
+}
+
+@utility animate-type-caret {
+  animation: 1s steps(1, end) infinite typeCaret;
+}
+
+@utility animate-orb-float {
+  animation: 5s ease-in-out infinite orbFloat;
+}
+
+@utility animate-waveform {
+  animation: var(--wave-dur, 0.9s) ease-in-out infinite waveform;
+}
+
+@utility animate-bar-grow {
+  animation: 0.8s var(--ease-decel) both barGrow;
+}
+
+@utility animate-ring-pulse {
+  animation: 1.8s var(--ease-out-quint) infinite ringPulse;
+}
+
+/* Каскад плиток: одна строка CSS вместо JS-оркестрации.
+   Плитке задаётся --tile-row, задержка считается сама. */
+@layer components {
+  .row-stagger .grid > * {
+    animation: 0.62s var(--ease-decel) both sectionIn;
+    animation-delay: calc(
+      var(--tile-base, 0s) + var(--tile-row, 0) * var(--tile-step, 0.17s)
+    );
+  }
+}
+
+/* ==========================================================================
+   7. ДОБАВЛЕННЫЕ КЕЙФРЕЙМЫ — полировка
+   ========================================================================== */
+
+/* блик по тексту заголовка */
+@keyframes textShimmer {
+  0% {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+/* сканирующая подсветка скелетона */
+@keyframes skeletonSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* заполнение полосы прогресса до заданного --progress */
+@keyframes progressGrow {
+  0% {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--progress, 1));
+  }
+}
+
+/* бегущая точка по линии графа */
+@keyframes dotTravel {
+  0% {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+/* мягкое дыхание статуса «в эфире» */
+@keyframes breathe {
+  0%,
+  to {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@utility animate-text-shimmer {
+  background-size: 220% 100%;
+  animation: 5.5s linear infinite textShimmer;
+}
+
+@utility animate-skeleton {
+  animation: 1.4s linear infinite skeletonSweep;
+}
+
+@utility animate-scale-in {
+  animation: 0.42s var(--ease-decel) both scaleIn;
+}
+
+@utility animate-slide-in-right {
+  animation: 0.4s var(--ease-decel) both slideInRight;
+}
+
+@utility animate-progress-grow {
+  animation: 1.1s var(--ease-out-quint) both progressGrow;
+}
+
+@utility animate-dot-travel {
+  animation: 3.2s linear infinite dotTravel;
+}
+
+@utility animate-breathe {
+  animation: 2.4s ease-in-out infinite breathe;
+}
+
+/* Премиальные мелочи: карточка чуть приподнимается, тень мягкая и холодная. */
+@utility card-lift {
+  transition:
+    border-color 0.2s var(--ease-decel),
+    box-shadow 0.3s var(--ease-decel),
+    transform 0.3s var(--ease-decel);
+
+  &:hover {
+    border-color: hsl(var(--primary) / 0.2);
+    box-shadow: 0 1px 2px hsl(var(--palette-jet) / 0.4),
+      0 12px 32px -12px hsl(var(--palette-jet) / 0.55);
+    transform: translateY(-2px);
+  }
+}
+
+/* Тонкая внутренняя грань сверху — даёт «стеклянность» тёмным карточкам. */
+@utility card-sheen {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.06),
+      transparent 38%
+    );
+  }
+}
+
+/* Луч, бегущий по кромке кнопки: конический градиент под маской,
+   угол крутится через @property --angle. */
+@utility border-beam {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--angle),
+      transparent 62%,
+      hsl(var(--brand) / 0.9) 78%,
+      transparent 92%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: 4.5s linear infinite borderBeam;
+    pointer-events: none;
+  }
+}
+
+/* Заголовок с проходящим бликом. Градиент рисуется по тексту. */
+@utility shimmer-text {
+  background-image: linear-gradient(
+    100deg,
+    hsl(var(--primary)) 42%,
+    hsl(var(--primary) / 0.55) 50%,
+    hsl(var(--primary)) 58%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: 6s linear infinite textShimmer;
+}
+
+/* Бегущий пунктир для SVG-линий: сдвигаем dashoffset на длину периода. */
+@keyframes dashMove {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+@utility animate-dash {
+  stroke-dasharray: 5 6;
+  animation: 1.6s linear infinite dashMove;
 }
