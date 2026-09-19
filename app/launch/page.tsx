@@ -8,6 +8,7 @@ export default function LaunchPage() {
   return (
     <>
       <PageHero
+        eyebrow="Start here"
         title="Launch a token"
         description="Fornum deploys the mint with our treasury as the creator fee recipient. Fees then go to the WhatsApp number you name here, and nowhere else"
       />

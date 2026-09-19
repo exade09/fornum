@@ -22,22 +22,43 @@ export default function QueuePage() {
   return (
     <>
       <PageHero
+        eyebrow="Live"
         title="Call queue"
         description="Calls run one at a time. Your position comes from the program, so it is the same number everyone else sees"
       />
 
       <section className="mx-auto w-full px-4 pt-6 lg:px-6 xl:max-w-7xl">
-        <Card sheen className="animate-section-in flex flex-wrap gap-x-12 gap-y-5 p-6">
-          <Field label="In queue" value={num(stats.callsInQueue)} accent="queued" />
-          <Field label="On the line" value={num(stats.callsLive)} accent="dialing" />
-          <Field label="Answer rate" value={`${stats.answerRatePct}%`} accent="brand" />
-          <Field label="Tokens routing fees" value={num(stats.tokensLaunched)} />
+        <Card
+          sheen
+          className="animate-section-in flex flex-wrap gap-x-12 gap-y-5 p-6"
+        >
+          <Field
+            label="In queue"
+            value={num(stats.callsInQueue)}
+            accent="queued"
+          />
+          <Field
+            label="On the line"
+            value={num(stats.callsLive)}
+            accent="dialing"
+          />
+          <Field
+            label="Answer rate"
+            value={`${stats.answerRatePct}%`}
+            accent="brand"
+          />
+          <Field
+            label="Tokens routing fees"
+            value={num(stats.tokensLaunched)}
+          />
         </Card>
       </section>
 
       {live.length > 0 && (
         <section className="mx-auto w-full px-4 pt-3 lg:px-6 xl:max-w-7xl">
-          <h2 className="mb-3 text-sm font-bold text-primary">On the line now</h2>
+          <h2 className="mb-3 text-sm font-bold text-primary">
+            On the line now
+          </h2>
           <div className="grid gap-3 lg:grid-cols-2">
             {live.map((c, i) => {
               const token = getToken(c.tokenId);
@@ -58,7 +79,10 @@ export default function QueuePage() {
                         {c.phone}
                       </span>
                       <span className="truncate text-xs text-secondary">
-                        {token?.symbol} fees, {c.agent === "operator" ? "live operator" : "recorded voice"}
+                        {token?.symbol} fees,{" "}
+                        {c.agent === "operator"
+                          ? "live operator"
+                          : "recorded voice"}
                       </span>
                     </div>
                     <CallChip status={c.status} className="ml-auto" />
@@ -93,7 +117,11 @@ export default function QueuePage() {
                   <span className="tnum flex size-9 shrink-0 items-center justify-center rounded-full bg-background/70 text-sm font-bold text-queued ring-1 ring-primary/[0.08]">
                     {c.position}
                   </span>
-                  <TokenMark symbol={token?.symbol ?? "?"} size="md" className="size-9" />
+                  <TokenMark
+                    symbol={token?.symbol ?? "?"}
+                    size="md"
+                    className="size-9"
+                  />
                   <div className="flex min-w-0 flex-col">
                     <span className="truncate text-sm font-bold text-primary">
                       {token?.symbol}

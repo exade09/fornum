@@ -16,6 +16,7 @@ export default function PayoutsPage() {
   return (
     <>
       <PageHero
+        eyebrow="Treasury"
         title="Payouts"
         description="Creator fees from tokens launched here, claimed on chain and sent to the number the launch pointed at"
       />

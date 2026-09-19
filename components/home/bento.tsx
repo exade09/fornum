@@ -1,11 +1,17 @@
 import Link from "next/link";
+import type { ComponentType, SVGProps } from "react";
 import {
   ArrowRightIcon,
   CheckIcon,
+  CreateIcon,
+  DocsIcon,
+  PayoutIcon,
   PhoneIcon,
+  QueueIcon,
   WhatsAppIcon,
 } from "@/components/icons";
 import { TokenMark } from "@/components/ui/token-mark";
+import { Waveform } from "@/components/ui/waveform";
 import { RollingNumber } from "@/components/ui/rolling-number";
 import { Card } from "@/components/ui/primitives";
 import {
@@ -25,11 +31,16 @@ import { cn } from "@/lib/cn";
 /* Tile shell                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The label sits at the top with the arrow opposite it, and the preview fills
+ * whatever is left, so a tile reads title first and picture second
+ */
 function BentoCard({
   href,
   label,
   hint,
   row,
+  icon: Icon,
   className,
   children,
 }: {
@@ -37,6 +48,7 @@ function BentoCard({
   label: string;
   hint: string;
   row: number;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -49,21 +61,26 @@ function BentoCard({
         className,
       )}
     >
-      <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
-      <div className="flex shrink-0 items-center gap-3 px-4 py-3">
-        <span className="text-sm font-bold text-primary">{label}</span>
-        <span className="truncate text-xs text-secondary">{hint}</span>
-        <span className="ml-auto flex shrink-0 items-center gap-1 text-sm text-secondary transition-colors group-hover/card:text-primary">
-          Open
+      <div className="flex shrink-0 items-start gap-3 px-4 pt-4 pb-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background/70 ring-1 ring-primary/[0.08]">
+          <Icon className="size-4 text-brand" />
+        </span>
+        <div className="flex min-w-0 flex-col">
+          <span className="text-sm font-bold text-primary">{label}</span>
+          <span className="truncate text-xs text-secondary">{hint}</span>
+        </div>
+        <span className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/[0.06] text-secondary transition-colors group-hover/card:border-primary/20 group-hover/card:text-primary">
           <ArrowRightIcon className="size-3.5 transition-transform group-hover/card:translate-x-0.5" />
         </span>
       </div>
+
+      <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
     </Link>
   );
 }
 
 const FADE =
-  "pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent";
+  "pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card to-transparent";
 
 /* ------------------------------------------------------------------ */
 /* 1. Launch                                                           */
@@ -76,7 +93,8 @@ export function LaunchTile() {
       label="Launch"
       hint="Deploy a token, point its fees at a number"
       row={0}
-      className="sm:col-span-3"
+      icon={CreateIcon}
+      className="lg:col-span-5 lg:row-span-2 lg:h-full"
     >
       <div className="absolute inset-0 flex flex-col gap-3 p-4">
         <span className="text-[10px] font-bold tracking-wider text-secondary">
@@ -113,7 +131,26 @@ export function LaunchTile() {
           </span>
         </div>
 
-        <div className="mt-auto flex items-center gap-2">
+        {/* only the tall version has room for this, so it stays hidden below lg */}
+        <div className="mt-4 hidden flex-col gap-2 lg:flex">
+          <span className="text-[10px] font-bold tracking-wider text-secondary">
+            THEN WE CALL
+          </span>
+          <div className="flex flex-col gap-2 rounded-lg border border-primary/[0.06] bg-background/70 p-3">
+            <div className="flex items-center gap-2">
+              <span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/15">
+                <span className="animate-ring-pulse motion-reduce:animate-none absolute size-7 rounded-full bg-brand/40" />
+                <PhoneIcon className="size-3.5 text-brand" />
+              </span>
+              <span className="text-xs text-primary">
+                Confirm this number and we send the fees
+              </span>
+            </div>
+            <Waveform className="h-6" bars={26} />
+          </div>
+        </div>
+
+        <div className="mt-auto flex items-center gap-2 pt-3">
           <span className="flex h-8 items-center rounded-full bg-primary px-4 text-xs font-bold text-background">
             Deploy
           </span>
@@ -170,7 +207,8 @@ export function PayoutsTile() {
       label="Payouts"
       hint="Every claim lands on a confirmed number"
       row={0}
-      className="sm:col-span-3"
+      icon={PayoutIcon}
+      className="lg:col-span-7"
     >
       <div className="absolute inset-0 px-3 pt-3">
         <div
@@ -234,7 +272,8 @@ export function TokensTile() {
       label="Tokens"
       hint="Launched here, fees already routed"
       row={1}
-      className="sm:col-span-2"
+      icon={QueueIcon}
+      className="sm:col-span-3 lg:col-span-4"
     >
       <div className="absolute inset-0">
         <div
@@ -278,7 +317,10 @@ export function TokensTile() {
 export function CallsTile() {
   const stats = getStats();
   const rows = CALLS.filter(
-    (c) => c.status === "dialing" || c.status === "queued" || c.status === "verifying",
+    (c) =>
+      c.status === "dialing" ||
+      c.status === "queued" ||
+      c.status === "verifying",
   ).slice(0, 4);
 
   return (
@@ -287,7 +329,8 @@ export function CallsTile() {
       label="Calls"
       hint="Live queue with your position"
       row={1}
-      className="sm:col-span-2"
+      icon={PhoneIcon}
+      className="sm:col-span-3 lg:col-span-3"
     >
       <div className="absolute inset-0 flex flex-col gap-2 p-4">
         <div className="flex items-baseline justify-between">
@@ -347,34 +390,45 @@ export function DocsTile() {
       href="/docs"
       label="Docs"
       hint="One account per launched token"
-      row={1}
-      className="sm:col-span-2"
+      row={2}
+      icon={DocsIcon}
+      className="sm:col-span-6 lg:col-span-12 lg:h-[200px]"
     >
-      <div className="absolute inset-0 flex flex-col gap-2 p-4">
-        <span className="text-[10px] font-bold tracking-wider text-secondary">
-          TOKEN ACCOUNT
-        </span>
-        <p className="text-xs leading-snug text-primary">
-          The mint, the creator and the hashed number sit in one account, so
-          fees can only ever go where the launch pointed them
-        </p>
+      {/* wide strip, so the copy and the byte table sit side by side */}
+      <div className="absolute inset-0 grid gap-4 px-4 pb-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-bold tracking-wider text-secondary">
+            TOKEN ACCOUNT
+          </span>
+          <p className="text-xs leading-snug text-primary">
+            The mint, the creator and the hashed number sit in one account, so
+            fees can only ever go where the launch pointed them
+          </p>
+        </div>
 
-        <div className="mt-1 overflow-hidden rounded-lg border border-primary/[0.06] bg-background/70 font-mono">
-          <div className="flex gap-3 border-b border-primary/[0.06] px-2.5 py-1 text-[9px] text-secondary">
-            <span className="w-6">OFF</span>
-            <span className="w-6">LEN</span>
-            <span>FIELD</span>
+        <div className="overflow-hidden rounded-lg border border-primary/[0.06] bg-background/70 font-mono">
+          <div className="grid grid-cols-4 gap-2 border-b border-primary/[0.06] px-2.5 py-1 text-[9px] text-secondary">
+            {ACCOUNT_LAYOUT.slice(0, 4).map((row) => (
+              <span key={row.off} className="tnum">
+                {row.off}
+                <span className="text-primary/40"> +{row.len}</span>
+              </span>
+            ))}
           </div>
-          {ACCOUNT_LAYOUT.slice(0, 5).map((row) => (
-            <div
-              key={row.off}
-              className="flex gap-3 px-2.5 py-[3px] text-[10px] text-primary/80"
-            >
-              <span className="tnum w-6 text-secondary">{row.off}</span>
-              <span className="tnum w-6 text-secondary">{row.len}</span>
-              <span className="truncate">{row.field}</span>
-            </div>
-          ))}
+          <div className="grid grid-cols-4 gap-2 px-2.5 py-2 text-[10px] text-primary/80">
+            {ACCOUNT_LAYOUT.slice(0, 4).map((row) => (
+              <span key={row.off} className="truncate">
+                {row.field}
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-2 border-t border-primary/[0.06] px-2.5 py-2 text-[10px] text-primary/80">
+            {ACCOUNT_LAYOUT.slice(4, 8).map((row) => (
+              <span key={row.off} className="truncate">
+                {row.field}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
       <div className={FADE} />
@@ -390,7 +444,9 @@ export function HomeBento() {
   return (
     <div className="row-stagger">
       <section className="mx-auto w-full px-4 lg:px-6 xl:max-w-7xl">
-        <div className="grid gap-3 sm:grid-cols-6">
+        {/* one tall tile on the left, the rest stacked beside it, then a wide
+            strip underneath, so the block is not a row of equal boxes */}
+        <div className="grid gap-3 sm:grid-cols-6 lg:grid-cols-12">
           <LaunchTile />
           <PayoutsTile />
           <TokensTile />
@@ -460,20 +516,36 @@ export function LaunchMarquee() {
 export function HeroStats() {
   const stats = getStats();
 
-  const items: { label: string; value: string; prefix?: string; suffix?: string }[] = [
+  const items: {
+    label: string;
+    value: string;
+    prefix?: string;
+    suffix?: string;
+  }[] = [
     { label: "Tokens launched", value: num(stats.tokensLaunched) },
-    { label: "Fees claimed", value: usd(stats.feesClaimedUsd, 0).slice(1), prefix: "$" },
-    { label: "Paid to numbers", value: usd(stats.paidOutUsd, 0).slice(1), prefix: "$" },
+    {
+      label: "Fees claimed",
+      value: usd(stats.feesClaimedUsd, 0).slice(1),
+      prefix: "$",
+    },
+    {
+      label: "Paid to numbers",
+      value: usd(stats.paidOutUsd, 0).slice(1),
+      prefix: "$",
+    },
     { label: "Answer rate", value: `${stats.answerRatePct}`, suffix: "%" },
   ];
 
   return (
-    <div className="grid w-full gap-3 sm:grid-cols-4">
+    /* one banded strip with dividers, rather than four separate cards */
+    <Card
+      sheen
+      className="animate-section-in grid grid-cols-2 divide-primary/[0.06] sm:grid-cols-4 sm:divide-x"
+    >
       {items.map((s, i) => (
-        <Card
+        <div
           key={s.label}
-          sheen
-          className="animate-card-in motion-reduce:animate-none flex flex-col items-center gap-1 px-4 py-4"
+          className="animate-card-in motion-reduce:animate-none flex flex-col items-start gap-1 px-5 py-5"
           style={{ animationDelay: `${i * 90}ms` }}
         >
           <RollingNumber
@@ -484,8 +556,8 @@ export function HeroStats() {
             className="text-[26px] text-primary"
           />
           <span className="text-xs text-secondary">{s.label}</span>
-        </Card>
+        </div>
       ))}
-    </div>
+    </Card>
   );
 }

@@ -13,6 +13,7 @@ export default function AdminPage() {
   return (
     <>
       <PageHero
+        eyebrow="Internal"
         title="Site controls"
         description="Every counter on the site is computed from real activity. Pin one here when you want to show a specific number instead"
       />

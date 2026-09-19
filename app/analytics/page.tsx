@@ -9,6 +9,7 @@ export default function AnalyticsPage() {
   return (
     <>
       <PageHero
+        eyebrow="Protocol"
         title="Analytics"
         description="How many tokens launched, how much they earned in creator fees and how much of that reached a phone"
       />

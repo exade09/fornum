@@ -172,7 +172,9 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
           className="animate-section-in flex flex-col gap-1 p-6"
           style={{ animationDelay: "120ms" }}
         >
-          <h2 className="mb-3 text-sm font-bold text-primary">Where it stands</h2>
+          <h2 className="mb-3 text-sm font-bold text-primary">
+            Where it stands
+          </h2>
 
           {STEPS.map((step, i) => {
             const done = i < reached;
@@ -249,7 +251,9 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
                     {c.kind === "payout" ? "Payout call" : "Holder alert"}
                   </span>
                   <span className="text-xs text-secondary">
-                    {c.agent === "operator" ? "live operator" : "recorded voice"}
+                    {c.agent === "operator"
+                      ? "live operator"
+                      : "recorded voice"}
                     {c.duration ? `, ${c.duration}` : ""}
                   </span>
                 </div>

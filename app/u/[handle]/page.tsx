@@ -41,7 +41,10 @@ export default async function ProfilePage({
         </div>
 
         <div className="relative px-6 pb-6">
-          <WalletMark address={p.wallet} className="-mt-12 size-24 ring-4 ring-card" />
+          <WalletMark
+            address={p.wallet}
+            className="-mt-12 size-24 ring-4 ring-card"
+          />
 
           <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-col gap-1">

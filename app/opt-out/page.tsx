@@ -8,6 +8,7 @@ export default function OptOutPage() {
   return (
     <>
       <PageHero
+        eyebrow="Consent"
         title="Calls to your number"
         description="A number is only dialed while consent is active. Turn it off here and every pending call to it is dropped"
       />

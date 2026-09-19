@@ -32,6 +32,7 @@ export default function FlowPage() {
   return (
     <>
       <PageHero
+        eyebrow="Protocol"
         title="Where the money goes"
         description="Nothing moves until the number confirms and the call goes through. Each node below is one instruction in the program"
       />

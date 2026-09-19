@@ -9,11 +9,14 @@ import { TOKENS, compactUsd, usd } from "@/lib/data";
 export const metadata: Metadata = { title: "Tokens" };
 
 export default function TokensPage() {
-  const top = [...TOKENS].sort((a, b) => b.feesClaimed - a.feesClaimed).slice(0, 5);
+  const top = [...TOKENS]
+    .sort((a, b) => b.feesClaimed - a.feesClaimed)
+    .slice(0, 5);
 
   return (
     <>
       <PageHero
+        eyebrow="Directory"
         title="Tokens launched here"
         description="Every token on this page was deployed through Fornum, which is why its creator fees have a number to land on"
         action={
@@ -46,7 +49,11 @@ export default function TokensPage() {
                 className="animate-card-in motion-reduce:animate-none shrink-0"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
-                <Card lift sheen className="flex w-[230px] items-center gap-3 p-3">
+                <Card
+                  lift
+                  sheen
+                  className="flex w-[230px] items-center gap-3 p-3"
+                >
                   <TokenMark symbol={t.symbol} size="md" className="size-9" />
                   <div className="flex min-w-0 flex-col">
                     <span className="truncate text-sm font-bold text-primary">
