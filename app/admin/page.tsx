@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { PageHero } from "@/components/shell/page-hero";
 import { StatsControls } from "@/components/admin/stats-controls";
 import { LaunchRecorder } from "@/components/admin/launch-recorder";
+import { FeesRecorder } from "@/components/admin/fees-recorder";
 import { Card } from "@/components/ui/primitives";
 import { siteConfig } from "@/lib/config";
 import { hasDatabase } from "@/lib/db/client";
-import { dbError } from "@/lib/db/store";
+import { dbError, listTokens } from "@/lib/db/store";
 import { getStats, sol } from "@/lib/data";
 import { balanceOf, launchWalletAddress } from "@/lib/solana/wallet";
 
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 export default async function AdminPage() {
   const stats = await getStats();
   const dbFault = dbError();
+  const tokens = await listTokens();
   const wallet = launchWalletAddress();
 
   let balance: number | null = null;
@@ -71,6 +73,8 @@ export default async function AdminPage() {
         </Card>
 
         <LaunchRecorder />
+
+        <FeesRecorder tokens={tokens} />
 
         <StatsControls current={stats} overrides={siteConfig.overrides} />
       </section>
