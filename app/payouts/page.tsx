@@ -1,107 +1,116 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero, StaleNotice } from "@/components/shell/page-hero";
-import { PayoutsBrowser } from "@/components/payouts/payouts-browser";
-import { AnalyticsBoard } from "@/components/analytics/analytics-board";
 import { Card } from "@/components/ui/primitives";
 import { RollingNumber } from "@/components/ui/rolling-number";
 import { TokenMark } from "@/components/ui/token-mark";
-import { TOKENS, getStats, num, usd } from "@/lib/data";
+import { ArrowRightIcon } from "@/components/icons";
+import { CLAIMS, getStats, getToken, usd } from "@/lib/data";
 
-export const metadata: Metadata = { title: "Payouts" };
+export const metadata: Metadata = { title: "Claims" };
 
-export default function PayoutsPage() {
+export default function ClaimsPage() {
   const stats = getStats();
-  const top = [...TOKENS].sort((a, b) => b.feesPaid - a.feesPaid).slice(0, 6);
 
   return (
     <>
       <PageHero
         eyebrow="Treasury"
-        title="Payouts"
-        description="Creator fees from tokens launched here, claimed on chain and sent to the number the launch pointed at"
+        title="Claims"
+        description="Creator fees taken out by the people who launched the tokens. Every row is a transaction you can open on chain"
       />
       <StaleNotice>
-        {stats.paidOutUsd > 0
+        {stats.feesClaimedUsd > 0
           ? "Balances as of the last claim, refreshed every minute"
-          : "No fees have been claimed yet, so there is nothing to pay out"}
+          : "Nothing has been claimed yet, so there is nothing to show"}
       </StaleNotice>
 
-      <section className="mx-auto grid w-full gap-3 px-4 pt-6 pb-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-6 xl:max-w-7xl">
-        <div className="flex flex-col gap-3">
-          <Card sheen className="animate-section-in p-6 sm:p-8">
-            <span className="text-sm text-secondary">Paid to numbers</span>
-            <div className="mt-1">
-              <RollingNumber
-                value={usd(stats.paidOutUsd, 2).slice(1)}
-                prefix="$"
-                size={44}
-                className="font-display text-[44px] text-primary"
-              />
-            </div>
+      <section className="mx-auto flex w-full flex-col gap-3 px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
+        <Card sheen className="animate-section-in p-6 sm:p-8">
+          <span className="text-sm text-secondary">Claimed by owners</span>
+          <div className="mt-1">
+            <RollingNumber
+              value={usd(stats.feesClaimedUsd, 2).slice(1)}
+              prefix="$"
+              size={44}
+              className="font-display text-[44px] text-primary"
+            />
+          </div>
 
-            <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4">
-              <div className="flex flex-col">
-                <span className="text-xs text-secondary">Claimed so far</span>
-                <span className="tnum text-base font-bold text-primary">
-                  {usd(stats.feesClaimedUsd, 0)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-secondary">Held in escrow</span>
-                <span className="tnum text-base font-bold text-queued">
-                  {usd(stats.inEscrowUsd, 0)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-secondary">Tokens paying</span>
-                <span className="tnum text-base font-bold text-primary">
-                  {num(stats.tokensLaunched)}
-                </span>
-              </div>
-            </div>
-          </Card>
-
-          <PayoutsBrowser />
-        </div>
-
-        <Card
-          className="animate-section-in flex h-fit flex-col gap-3 p-5"
-          style={{ animationDelay: "80ms" }}
-        >
-          <span className="text-sm font-bold text-primary">Top earners</span>
-          {top.length === 0 && (
-            <span className="text-xs text-secondary">
-              No payouts yet, the first one appears here
-            </span>
-          )}
-          {top.map((t, i) => (
-            <Link
-              key={t.id}
-              href={`/token/${t.id}`}
-              className="animate-card-in motion-reduce:animate-none flex items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-background/70"
-              style={{ animationDelay: `${120 + i * 55}ms` }}
-            >
-              <TokenMark symbol={t.symbol} size="md" className="size-8" />
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-xs font-bold text-primary">
-                  {t.symbol}
-                </span>
-                <span className="tnum truncate text-[11px] text-secondary">
-                  {t.recipient}
-                </span>
-              </div>
-              <span className="tnum ml-auto text-sm font-bold text-brand">
-                {usd(t.feesPaid, 0)}
+          <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4">
+            <div className="flex flex-col">
+              <span className="text-xs text-secondary">Fees collected</span>
+              <span className="tnum text-base font-bold text-primary">
+                {usd(stats.feesAccruedUsd, 0)}
               </span>
-            </Link>
-          ))}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs text-secondary">
+                Waiting to be taken
+              </span>
+              <span className="tnum text-base font-bold text-queued">
+                {usd(stats.claimableUsd, 0)}
+              </span>
+            </div>
+          </div>
         </Card>
-      </section>
 
-      {/* protocol numbers live here now, they are the same money story */}
-      <section className="mx-auto w-full px-4 pb-10 lg:px-6 xl:max-w-7xl">
-        <AnalyticsBoard stats={getStats()} />
+        {CLAIMS.length === 0 ? (
+          <Card className="flex flex-col items-center gap-2 border-dashed p-12 text-center">
+            <span className="text-sm font-bold text-primary">
+              No claims yet
+            </span>
+            <p className="max-w-[42ch] text-sm text-secondary">
+              Each claim leaves a transaction here once somebody takes the fees
+              their token earned
+            </p>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {CLAIMS.map((c, i) => {
+              const token = getToken(c.tokenId);
+              return (
+                <Link
+                  key={c.id}
+                  href={`/token/${c.tokenId}`}
+                  className="animate-card-in motion-reduce:animate-none"
+                  style={{ animationDelay: `${i * 45}ms` }}
+                >
+                  <Card
+                    lift
+                    sheen
+                    className="group flex items-center gap-3 px-4 py-3"
+                  >
+                    <div className="flex min-w-0 flex-col">
+                      <span className="tnum text-lg font-bold text-primary">
+                        {usd(c.amount, 0)}
+                      </span>
+                      <span className="truncate font-mono text-xs text-secondary">
+                        {c.wallet}
+                      </span>
+                    </div>
+                    <div className="ml-auto flex items-center gap-3">
+                      <span className="hidden items-center gap-2 sm:flex">
+                        <TokenMark
+                          symbol={token?.symbol ?? "?"}
+                          size="sm"
+                          className="size-7"
+                        />
+                        <span className="text-xs font-bold text-secondary">
+                          {token?.symbol}
+                        </span>
+                      </span>
+                      <span className="tnum w-8 text-right text-xs text-secondary">
+                        {c.ago}
+                      </span>
+                      <ArrowRightIcon className="size-3.5 text-secondary opacity-0 transition-opacity group-hover:opacity-100" />
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
     </>
   );

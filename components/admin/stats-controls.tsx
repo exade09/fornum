@@ -16,34 +16,22 @@ const FIELDS: {
   statKey: keyof Stats;
 }[] = [
   {
-    key: "callsInQueue",
-    label: "Calls in queue",
-    hint: "Shown on the home badge and on the calls page",
-    statKey: "callsInQueue",
-  },
-  {
-    key: "callsLive",
-    label: "Calls on the line",
-    hint: "How many calls are running right now",
-    statKey: "callsLive",
-  },
-  {
     key: "tokensLaunched",
     label: "Tokens launched",
-    hint: "Counter under the hero",
+    hint: "Counter under the hero and on the claims page",
     statKey: "tokensLaunched",
   },
   {
-    key: "feesClaimedUsd",
-    label: "Fees claimed, USD",
-    hint: "Drives the analytics totals for every timeframe",
-    statKey: "feesClaimedUsd",
+    key: "feesAccruedUsd",
+    label: "Fees collected, USD",
+    hint: "Everything the launch wallets have taken in",
+    statKey: "feesAccruedUsd",
   },
   {
-    key: "paidOutUsd",
-    label: "Paid to numbers, USD",
-    hint: "Big number on the payouts page",
-    statKey: "paidOutUsd",
+    key: "feesClaimedUsd",
+    label: "Claimed by owners, USD",
+    hint: "Big number on the claims page",
+    statKey: "feesClaimedUsd",
   },
 ];
 

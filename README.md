@@ -1,17 +1,17 @@
 # Fornum
 
-Launch a token on Solana and get its creator fees delivered to a phone.
+Launch a token with one WhatsApp message and keep the creator fees.
 
 Live at [fornum-exed.vercel.app](https://fornum-exed.vercel.app)
 
-Fornum deploys the mint with our treasury set as the fee recipient, so every fee
-the token earns has a destination on file. We claim the fees, call the WhatsApp
-number the launch pointed at, and send the payout in dollars once the owner of
-that number confirms it.
+You text Fornum a name, a ticker and a picture. A person reads it, deploys the
+token on pump.fun from a Fornum launch wallet, and replies with the mint
+address. The creator fees that token earns are recorded against your number,
+and you claim them here to any Solana address. You can also hand the fees of a
+token to somebody else's number.
 
-Fees only exist for tokens deployed here. A mint created somewhere else pays its
-fees somewhere else, so there is nothing to claim and nobody to pay. That is why
-every token on the site went through the launch form.
+There is no bot, no form and no phone calls. The launch is a conversation, the
+site is where the money is.
 
 ## Stack
 
@@ -36,21 +36,18 @@ Production build is `npm run build`, serve it with `npm start`.
 
 ```
 /                 the number, the thread it runs through, live counters
-/launch           deploy a token and point its fees at a number
-/tokens           everything launched here, fees and recipients
-/queue            call queue with live position
-/payouts          payouts, receipts and the protocol totals
-/token/[id]       one token: fees, lifecycle, calls, on chain data
-/signin           sign in with a phone number, code over WhatsApp or SMS
-/docs             how it works, including the money flow diagram
-/opt-out          give or revoke consent for a number
-/u/[handle]       launcher profile with confirmed numbers
+/launch           how to launch, the number and the rules
+/tokens           everything launched here, fees and who they belong to
+/token/[id]       one token: fees, claim, hand over, claim history
+/payouts          claims, every one with a transaction
+/signin           sign in with a phone number, code over SMS or WhatsApp
+/docs             how it works, including the money flow
 /admin            pin the counters shown on the site
 /legal/*          terms and privacy
-
-Only five of these are in the navigation: home, launch, tokens, calls, payouts.
-The rest are reached from the footer, from a card, or from a link in a call.
 ```
+
+Only four are in the navigation: home, launch, tokens, claims. The rest are
+reached from the footer or from a card.
 
 ## The number
 

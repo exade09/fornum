@@ -1,31 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  Card,
-  CallChip,
-  Field,
-  Progress,
-  TokenChip,
-} from "@/components/ui/primitives";
-import { TokenMark, WalletMark } from "@/components/ui/token-mark";
-import { Waveform } from "@/components/ui/waveform";
+import { Card, Field, Progress, TokenChip } from "@/components/ui/primitives";
+import { TokenMark } from "@/components/ui/token-mark";
+import { ClaimPanel } from "@/components/token/claim-panel";
 import {
   ArrowRightIcon,
-  CheckIcon,
   ChevronLeftIcon,
-  PhoneIcon,
   WhatsAppIcon,
 } from "@/components/icons";
 import {
   TOKENS,
-  callsForToken,
+  claimable,
+  claimsForToken,
   compactUsd,
+  feeRecipient,
   getToken,
   num,
   usd,
 } from "@/lib/data";
-import { cn } from "@/lib/cn";
+import { readSession } from "@/lib/auth/session";
 
 export function generateStaticParams() {
   return TOKENS.map((t) => ({ id: t.id }));
@@ -39,29 +33,16 @@ export async function generateMetadata({
   return { title: t ? `${t.symbol}, ${t.name}` : "Token" };
 }
 
-/** Lifecycle of one token, each step maps to an instruction in the program */
-const STEPS = [
-  { label: "Mint deployed", hint: "launch_token" },
-  { label: "Number confirmed", hint: "confirm_recipient" },
-  { label: "Fees claimed", hint: "claim_fees" },
-  { label: "Call placed", hint: "place_call" },
-  { label: "Payout sent", hint: "settle" },
-];
-
 export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
   const { id } = await params;
   const t = getToken(id);
   if (!t) notFound();
 
-  const calls = callsForToken(t.id);
-  const paidRatio = t.feesClaimed > 0 ? t.feesPaid / t.feesClaimed : 0;
-
-  // how far this token got, derived from what actually happened to it
-  let reached = 1;
-  if (t.recipientConfirmed) reached = 2;
-  if (t.feesClaimed > 0 && t.recipientConfirmed) reached = 3;
-  if (calls.some((c) => c.status === "answered")) reached = 4;
-  if (t.feesPaid > 0) reached = 5;
+  const session = await readSession();
+  const recipient = feeRecipient(t);
+  const left = claimable(t);
+  const claims = claimsForToken(t.id);
+  const claimedRatio = t.feesAccrued > 0 ? t.feesClaimed / t.feesAccrued : 0;
 
   return (
     <div className="mx-auto flex w-full flex-col gap-3 px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
@@ -73,249 +54,133 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
         Back to tokens
       </Link>
 
-      <div className="animate-section-in grid gap-3 lg:grid-cols-2">
-        <Card sheen className="flex items-center gap-4 p-5">
-          <TokenMark symbol={t.symbol} size="xl" className="size-14" />
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-lg font-bold text-primary">
-                {t.symbol}
-              </span>
-              <TokenChip status={t.status} />
-            </div>
-            <span className="truncate text-sm text-secondary">{t.name}</span>
-          </div>
-          <div className="ml-auto flex flex-col items-end">
-            <span className="text-[10px] font-bold tracking-wider text-secondary">
-              MARKET CAP
-            </span>
-            <span className="tnum text-xl font-bold text-primary">
-              {compactUsd(t.marketCap)}
-            </span>
-          </div>
-        </Card>
-
-        <Card sheen className="flex items-center gap-4 p-5">
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-brand/15">
-            <WhatsAppIcon className="size-7 text-brand" />
-          </span>
-          <div className="flex min-w-0 flex-col gap-1">
-            <span className="tnum truncate text-lg font-bold text-primary">
-              {t.recipient}
-            </span>
-            <span className="flex items-center gap-1 text-sm text-secondary">
-              {t.recipientConfirmed ? (
-                <>
-                  <CheckIcon className="size-3.5 text-brand" />
-                  Consent on file
-                </>
-              ) : (
-                "Waiting for the owner to confirm"
-              )}
-            </span>
-          </div>
-          <div className="ml-auto flex flex-col items-end">
-            <span className="text-[10px] font-bold tracking-wider text-secondary">
-              PAID OUT
-            </span>
-            <span className="tnum text-xl font-bold text-brand">
-              {usd(t.feesPaid, 0)}
-            </span>
-          </div>
-        </Card>
-      </div>
-
-      <Card
-        sheen
-        className="animate-section-in flex flex-col gap-5 p-6"
-        style={{ animationDelay: "60ms" }}
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm text-secondary">
-            Launched {t.launchedAgo} by
-          </span>
-          <Link
-            href={`/u/${t.creator.replace(/[^A-Za-z0-9]/g, "")}`}
-            className="group flex items-center gap-2 text-sm font-bold text-primary"
-          >
-            <WalletMark address={t.creator} className="size-6" />
-            {t.creator}
-            <ArrowRightIcon className="size-3 text-secondary transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-x-12 gap-y-5">
-          <Field
-            label="Fees claimed"
-            value={usd(t.feesClaimed, 0)}
-            accent="brand"
-          />
-          <Field
-            label="Still to send"
-            value={usd(t.feesClaimed - t.feesPaid, 0)}
-            accent="queued"
-          />
-          <Field label="Holders" value={num(t.holders)} />
-          <Field
-            label="Calls made"
-            value={`${t.answered} of ${t.calls}`}
-            accent="dialing"
-          />
-        </div>
-
-        <Progress value={paidRatio} />
-      </Card>
-
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <Card
-          sheen
-          className="animate-section-in flex flex-col gap-1 p-6"
-          style={{ animationDelay: "120ms" }}
-        >
-          <h2 className="mb-3 text-sm font-bold text-primary">
-            Where it stands
-          </h2>
-
-          {STEPS.map((step, i) => {
-            const done = i < reached;
-            const active = i === reached;
-            const last = i === STEPS.length - 1;
-
-            return (
-              <div key={step.hint} className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <span
-                    className={cn(
-                      "relative flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors",
-                      done && "border-brand bg-brand/15 text-brand",
-                      active && "border-dialing bg-dialing/15 text-dialing",
-                      !done && !active && "border-primary/10 text-secondary",
-                    )}
-                  >
-                    {active && (
-                      <span className="animate-ring-pulse motion-reduce:animate-none absolute size-6 rounded-full bg-dialing/40" />
-                    )}
-                    {done ? (
-                      <CheckIcon className="size-3.5" />
-                    ) : (
-                      <span className="tnum text-[10px]">{i + 1}</span>
-                    )}
-                  </span>
-                  {!last && (
-                    <span
-                      className={cn(
-                        "w-px flex-1",
-                        done ? "bg-brand/40" : "bg-primary/10",
-                      )}
-                    />
-                  )}
-                </div>
-
-                <div className={cn("flex flex-col pb-6", last && "pb-0")}>
-                  <span
-                    className={cn(
-                      "text-sm",
-                      done || active
-                        ? "font-bold text-primary"
-                        : "text-secondary",
-                    )}
-                  >
-                    {step.label}
-                  </span>
-                  <span className="font-mono text-[11px] text-secondary">
-                    {step.hint}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </Card>
-
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-3">
-          {calls.map((c, i) => (
-            <Card
-              key={c.id}
-              sheen
-              className="animate-section-in flex flex-col gap-3 p-5"
-              style={{ animationDelay: `${160 + i * 60}ms` }}
-            >
-              <div className="flex items-center gap-3">
-                <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15">
-                  {c.status === "dialing" && (
-                    <span className="animate-ring-pulse motion-reduce:animate-none absolute size-10 rounded-full bg-brand/40" />
-                  )}
-                  <PhoneIcon className="size-5 text-brand" />
+          <Card
+            sheen
+            className="animate-section-in flex items-center gap-4 p-5"
+          >
+            <TokenMark symbol={t.symbol} size="xl" className="size-16" />
+            <div className="flex min-w-0 flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-xl font-bold text-primary">
+                  {t.symbol}
                 </span>
-                <div className="flex min-w-0 flex-col">
-                  <span className="text-sm font-bold text-primary">
-                    {c.kind === "payout" ? "Payout call" : "Holder alert"}
-                  </span>
-                  <span className="text-xs text-secondary">
-                    {c.agent === "operator"
-                      ? "live operator"
-                      : "recorded voice"}
-                    {c.duration ? `, ${c.duration}` : ""}
-                  </span>
-                </div>
-                <CallChip status={c.status} className="ml-auto" />
+                <TokenChip status={t.status} />
               </div>
+              <span className="truncate text-sm text-secondary">{t.name}</span>
+              <a
+                href={`https://pump.fun/${t.mint}`}
+                target="_blank"
+                rel="noreferrer"
+                className="group mt-1 flex w-fit items-center gap-1 font-mono text-[11px] text-secondary transition-colors hover:text-primary"
+              >
+                {t.mint.slice(0, 10)}…{t.mint.slice(-8)}
+                <ArrowRightIcon className="size-3 transition-transform group-hover:translate-x-0.5" />
+              </a>
+            </div>
+            <div className="ml-auto flex flex-col items-end">
+              <span className="text-[10px] font-bold tracking-wider text-secondary">
+                MARKET CAP
+              </span>
+              <span className="tnum text-xl font-bold text-primary">
+                {compactUsd(t.marketCap)}
+              </span>
+            </div>
+          </Card>
 
-              <p className="text-sm text-secondary">{c.script}</p>
-              <Waveform
-                className="h-9"
-                paused={c.status !== "dialing"}
-                bars={30}
+          <Card
+            sheen
+            className="animate-section-in flex flex-col gap-5 p-6"
+            style={{ animationDelay: "60ms" }}
+          >
+            <div className="flex flex-wrap items-end gap-x-12 gap-y-5">
+              <Field
+                label="Fees collected"
+                value={usd(t.feesAccrued, 0)}
+                accent="brand"
               />
-            </Card>
-          ))}
+              <Field label="Already claimed" value={usd(t.feesClaimed, 0)} />
+              <Field
+                label="Left to claim"
+                value={usd(left, 0)}
+                accent="queued"
+              />
+              <Field label="Holders" value={num(t.holders)} />
+            </div>
+            <Progress value={claimedRatio} />
+            <span className="text-xs text-secondary">
+              Launched {t.launchedAgo} from{" "}
+              <span className="tnum text-primary/80">{t.owner}</span>
+              {t.assignedTo ? (
+                <>
+                  , fees handed to{" "}
+                  <span className="tnum text-primary/80">{t.assignedTo}</span>
+                </>
+              ) : null}
+            </span>
+          </Card>
 
-          <Card className="animate-section-in flex flex-col gap-3 p-5">
-            <span className="text-sm font-bold text-primary">On chain</span>
-            <Row
-              label="Mint"
-              value={t.mint}
-              href={`https://solscan.io/token/${t.mint}`}
-            />
-            <Row label="Creator" value={t.creator} />
-            <Row label="Fee recipient" value="Fornum treasury" />
+          <Card
+            className="animate-section-in flex flex-col gap-3 p-5"
+            style={{ animationDelay: "120ms" }}
+          >
+            <span className="text-sm font-bold text-primary">
+              Claim history
+            </span>
+            {claims.length === 0 && (
+              <span className="text-xs text-secondary">
+                Nothing claimed yet
+              </span>
+            )}
+            {claims.map((c, i) => (
+              <a
+                key={c.id}
+                href={`https://solscan.io/tx/${c.tx}`}
+                target="_blank"
+                rel="noreferrer"
+                className="animate-card-in motion-reduce:animate-none group flex items-center gap-3 rounded-lg px-1 py-1.5 transition-colors hover:bg-background/70"
+                style={{ animationDelay: `${160 + i * 55}ms` }}
+              >
+                <span className="tnum text-sm font-bold text-primary">
+                  {usd(c.amount, 0)}
+                </span>
+                <span className="truncate font-mono text-xs text-secondary">
+                  {c.wallet}
+                </span>
+                <span className="tnum ml-auto text-xs text-secondary">
+                  {c.ago}
+                </span>
+                <ArrowRightIcon className="size-3 text-secondary opacity-0 transition-opacity group-hover:opacity-100" />
+              </a>
+            ))}
+          </Card>
+        </div>
+
+        <div className="animate-section-in flex flex-col gap-3">
+          <ClaimPanel
+            amount={left}
+            recipient={recipient}
+            signedIn={Boolean(session)}
+            canClaim={session?.masked === recipient}
+          />
+
+          <Card className="flex flex-col gap-2 p-5 text-xs text-secondary">
+            <span className="text-sm font-bold text-primary">
+              How the fees got here
+            </span>
+            <p>
+              The mint was deployed from a Fornum launch wallet, so pump.fun
+              pays its creator fees to us
+            </p>
+            <p className="flex items-center gap-1.5">
+              <WhatsAppIcon className="size-3.5 shrink-0 text-brand" />
+              They belong to the number that asked for the launch, and only that
+              number can move them
+            </p>
           </Card>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: string;
-  href?: string;
-}) {
-  const body = (
-    <span className="truncate font-mono text-xs text-primary/80 transition-colors group-hover:text-primary">
-      {value}
-    </span>
-  );
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-24 shrink-0 text-xs text-secondary">{label}</span>
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          className="group flex min-w-0 flex-1 items-center gap-1"
-        >
-          {body}
-          <ArrowRightIcon className="size-3 shrink-0 text-secondary transition-colors group-hover:text-primary" />
-        </a>
-      ) : (
-        <span className="min-w-0 flex-1">{body}</span>
-      )}
     </div>
   );
 }

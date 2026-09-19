@@ -1,11 +1,9 @@
 {
   "_comment": "Counters are computed from real activity. A value in overrides is shown instead. demoData swaps the empty live set for sample rows.",
   "overrides": {
-    "callsInQueue": null,
-    "callsLive": null,
     "tokensLaunched": null,
-    "feesClaimedUsd": null,
-    "paidOutUsd": null
+    "feesAccruedUsd": null,
+    "feesClaimedUsd": null
   },
   "banner": {
     "enabled": false,

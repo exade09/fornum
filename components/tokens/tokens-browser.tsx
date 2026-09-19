@@ -10,11 +10,18 @@ import {
   TokenChip,
 } from "@/components/ui/primitives";
 import { TokenMark } from "@/components/ui/token-mark";
-import { CheckIcon, SearchIcon, WhatsAppIcon } from "@/components/icons";
-import { TOKENS, compactUsd, num, usd, type Token } from "@/lib/data";
-import { cn } from "@/lib/cn";
+import { SearchIcon, WhatsAppIcon } from "@/components/icons";
+import {
+  TOKENS,
+  claimable,
+  compactUsd,
+  feeRecipient,
+  num,
+  usd,
+  type Token,
+} from "@/lib/data";
 
-type Filter = "all" | "live" | "pending";
+type Filter = "all" | "unclaimed" | "claimed";
 type SortKey = "fees" | "cap" | "new";
 
 export function TokensBrowser() {
@@ -25,8 +32,8 @@ export function TokensBrowser() {
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     return TOKENS.filter((t) => {
-      if (filter === "live") return t.status !== "pending";
-      if (filter === "pending") return t.status === "pending";
+      if (filter === "unclaimed") return claimable(t) > 0;
+      if (filter === "claimed") return t.feesClaimed > 0;
       return true;
     })
       .filter(
@@ -39,7 +46,7 @@ export function TokensBrowser() {
       .sort((a, b) => {
         if (sort === "cap") return b.marketCap - a.marketCap;
         if (sort === "new") return a.ageMinutes - b.ageMinutes;
-        return b.feesClaimed - a.feesClaimed;
+        return b.feesAccrued - a.feesAccrued;
       });
   }, [filter, sort, query]);
 
@@ -51,8 +58,8 @@ export function TokensBrowser() {
           onChange={setFilter}
           options={[
             { id: "all", label: "All" },
-            { id: "live", label: "Routing" },
-            { id: "pending", label: "Fees waiting" },
+            { id: "unclaimed", label: "Unclaimed" },
+            { id: "claimed", label: "Claimed" },
           ]}
         />
 
@@ -87,7 +94,7 @@ export function TokensBrowser() {
           }
           description={
             TOKENS.length === 0
-              ? "The first token deployed through Fornum shows up here, with the number its fees point at"
+              ? "The first token launched over WhatsApp shows up here, with the fees it has earned"
               : "Try another ticker or clear the filters, the list updates as new tokens launch"
           }
         />
@@ -103,7 +110,8 @@ export function TokensBrowser() {
 }
 
 function TokenCard({ token: t, index }: { token: Token; index: number }) {
-  const paidRatio = t.feesClaimed > 0 ? t.feesPaid / t.feesClaimed : 0;
+  const left = claimable(t);
+  const ratio = t.feesAccrued > 0 ? t.feesClaimed / t.feesAccrued : 0;
 
   return (
     <Link
@@ -126,10 +134,10 @@ function TokenCard({ token: t, index }: { token: Token; index: number }) {
         <div className="flex items-end justify-between">
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-bold tracking-wider text-secondary">
-              FEES CLAIMED
+              FEES COLLECTED
             </span>
             <span className="tnum text-lg font-bold text-brand">
-              {usd(t.feesClaimed, 0)}
+              {usd(t.feesAccrued, 0)}
             </span>
           </div>
           <div className="flex flex-col items-end gap-0.5">
@@ -143,9 +151,9 @@ function TokenCard({ token: t, index }: { token: Token; index: number }) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Progress value={paidRatio} />
+          <Progress value={ratio} />
           <div className="flex items-center justify-between text-[11px] text-secondary">
-            <span className="tnum">{usd(t.feesPaid, 0)} paid out</span>
+            <span className="tnum">{usd(left, 0)} left to claim</span>
             <span className="tnum">{num(t.holders)} holders</span>
           </div>
         </div>
@@ -155,17 +163,13 @@ function TokenCard({ token: t, index }: { token: Token; index: number }) {
             <WhatsAppIcon className="size-3.5 text-brand" />
           </span>
           <span className="tnum truncate text-xs text-secondary">
-            {t.recipient}
+            {feeRecipient(t)}
           </span>
-          <span
-            className={cn(
-              "ml-auto flex shrink-0 items-center gap-1 text-[11px] font-bold",
-              t.recipientConfirmed ? "text-brand" : "text-queued",
-            )}
-          >
-            {t.recipientConfirmed && <CheckIcon className="size-3" />}
-            {t.recipientConfirmed ? "Confirmed" : "Waiting"}
-          </span>
+          {t.assignedTo && (
+            <span className="ml-auto shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-secondary">
+              handed over
+            </span>
+          )}
         </div>
       </Card>
     </Link>

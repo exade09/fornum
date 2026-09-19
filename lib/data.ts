@@ -1,24 +1,16 @@
 import { pick, siteConfig } from "@/lib/config";
-import {
-  DEMO_CALLS,
-  DEMO_PAYOUTS,
-  DEMO_PROFILES,
-  DEMO_TOKENS,
-} from "@/lib/demo-data";
+import { DEMO_CLAIMS, DEMO_TOKENS } from "@/lib/demo-data";
 
 /**
- * Demo data shaped like the on chain response, so pages keep working once the
- * program lands and only the source swaps
+ * Shaped like the on chain response, so pages keep working once the program
+ * lands and only the source swaps
  *
- * Every token here was launched through Fornum. That is the whole point: fees
- * exist because we deployed the mint with our treasury as the fee recipient,
- * so there is always a number to send them to
+ * Every token here was launched through Fornum. The creator fees accrue to the
+ * launch wallet, so there is always something for whoever asked for the launch
+ * to claim
  */
 
 export type TokenStatus = "live" | "graduated" | "pending";
-export type CallStatus =
-  "queued" | "verifying" | "dialing" | "answered" | "missed";
-export type Agent = "bot" | "operator";
 
 export type Token = {
   id: string;
@@ -26,98 +18,81 @@ export type Token = {
   name: string;
   symbol: string;
   status: TokenStatus;
-  /** wallet that signed the launch */
-  creator: string;
-  /** masked number the creator fees are pointed at */
-  recipient: string;
-  recipientConfirmed: boolean;
+  /** masked number the launch came from */
+  owner: string;
+  /** set when the owner handed the fees to somebody else */
+  assignedTo?: string;
   launchedAgo: string;
-  /** minutes since launch, used for sorting and for the live counters */
+  /** minutes since launch, used for sorting */
   ageMinutes: number;
   marketCap: number;
   holders: number;
+  /** creator fees collected by the launch wallet so far, USD */
+  feesAccrued: number;
+  /** already sent out to a wallet, USD */
   feesClaimed: number;
-  feesPaid: number;
-  calls: number;
-  answered: number;
 };
 
-export type Call = {
-  id: string;
-  tokenId: string;
-  /** payout tells the recipient money is on the way, alert is a holder ping */
-  kind: "payout" | "alert";
-  agent: Agent;
-  status: CallStatus;
-  position: number;
-  phone: string;
-  script: string;
-  createdAgo: string;
-  duration?: string;
-};
+/** What is left to take right now */
+export function claimable(t: Token) {
+  return Math.max(t.feesAccrued - t.feesClaimed, 0);
+}
 
-export type Payout = {
+/** Who may claim: whoever the fees were handed to, otherwise the owner */
+export function feeRecipient(t: Token) {
+  return t.assignedTo ?? t.owner;
+}
+
+/* ------------------------------------------------------------------ */
+/* Claims                                                              */
+/* ------------------------------------------------------------------ */
+
+export type Claim = {
   id: string;
   tokenId: string;
   amount: number;
-  phone: string;
-  ago: string;
-  receipt: string;
-};
-
-export type Profile = {
-  handle: string;
-  name: string;
+  /** wallet the money went to */
   wallet: string;
-  bio: string;
-  numbers: { masked: string; confirmedAgo: string; active: boolean }[];
+  ago: string;
+  tx: string;
 };
 
 /**
- * The live set. Empty until the program ships, so every counter on the site
- * reads zero rather than a number nobody can verify
+ * The live set. Empty until the program ships, so every counter reads zero
+ * rather than a number nobody can verify
  *
  * Turning demoData on in site-config.json swaps in the sample rows, which is
  * what screenshots and walkthroughs use
  */
 export const TOKENS: Token[] = siteConfig.demoData ? DEMO_TOKENS : [];
-export const CALLS: Call[] = siteConfig.demoData ? DEMO_CALLS : [];
-export const PAYOUTS: Payout[] = siteConfig.demoData ? DEMO_PAYOUTS : [];
-export const PROFILES: Profile[] = siteConfig.demoData ? DEMO_PROFILES : [];
+export const CLAIMS: Claim[] = siteConfig.demoData ? DEMO_CLAIMS : [];
 
 export function getToken(id: string) {
   return TOKENS.find((t) => t.id === id);
 }
 
-export function getCall(id: string) {
-  return CALLS.find((c) => c.id === id);
+export function claimsForToken(tokenId: string) {
+  return CLAIMS.filter((c) => c.tokenId === tokenId);
 }
 
-export function callsForToken(tokenId: string) {
-  return CALLS.filter((c) => c.tokenId === tokenId);
-}
-
-export function getProfile(handle: string) {
-  return PROFILES.find((p) => p.handle === handle) ?? null;
-}
-
-export function tokensByCreator(creator: string) {
-  return TOKENS.filter((t) => t.creator === creator);
+/** Tokens a signed in number may claim from */
+export function tokensForNumber(masked: string | null) {
+  if (!masked) return [];
+  return TOKENS.filter((t) => feeRecipient(t) === masked);
 }
 
 /* ------------------------------------------------------------------ */
-/* Account layout shown in the docs tile                               */
+/* Account layout shown in the docs                                    */
 /* ------------------------------------------------------------------ */
 
 export const ACCOUNT_LAYOUT = [
   { off: 0, len: 8, field: "discriminator" },
   { off: 8, len: 32, field: "token mint" },
-  { off: 40, len: 32, field: "creator" },
+  { off: 40, len: 32, field: "launch wallet" },
   { off: 72, len: 32, field: "recipient hash" },
-  { off: 104, len: 8, field: "fees claimed" },
-  { off: 112, len: 8, field: "fees paid" },
-  { off: 120, len: 4, field: "queue index" },
-  { off: 124, len: 1, field: "status" },
+  { off: 104, len: 8, field: "fees accrued" },
+  { off: 112, len: 8, field: "fees claimed" },
+  { off: 120, len: 1, field: "status" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -125,12 +100,10 @@ export const ACCOUNT_LAYOUT = [
 /* ------------------------------------------------------------------ */
 
 export type Stats = {
-  callsInQueue: number;
-  callsLive: number;
   tokensLaunched: number;
+  feesAccruedUsd: number;
   feesClaimedUsd: number;
-  paidOutUsd: number;
-  inEscrowUsd: number;
+  claimableUsd: number;
 };
 
 /**
@@ -138,20 +111,14 @@ export type Stats = {
  * FORNUM_OVERRIDES replaces the computed one
  */
 export function getStats(): Stats {
-  const queued = CALLS.filter(
-    (c) => c.status === "queued" || c.status === "verifying",
-  ).length;
-  const live = CALLS.filter((c) => c.status === "dialing").length;
+  const accrued = TOKENS.reduce((sum, t) => sum + t.feesAccrued, 0);
   const claimed = TOKENS.reduce((sum, t) => sum + t.feesClaimed, 0);
-  const paid = TOKENS.reduce((sum, t) => sum + t.feesPaid, 0);
 
   return {
-    callsInQueue: pick("callsInQueue", queued),
-    callsLive: pick("callsLive", live),
     tokensLaunched: pick("tokensLaunched", TOKENS.length),
+    feesAccruedUsd: pick("feesAccruedUsd", accrued),
     feesClaimedUsd: pick("feesClaimedUsd", claimed),
-    paidOutUsd: pick("paidOutUsd", paid),
-    inEscrowUsd: Math.max(claimed - paid, 0),
+    claimableUsd: Math.max(accrued - claimed, 0),
   };
 }
 

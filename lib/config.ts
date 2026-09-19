@@ -1,11 +1,9 @@
 import raw from "@/content/site-config.json";
 
 export type Overrides = {
-  callsInQueue: number | null;
-  callsLive: number | null;
   tokensLaunched: number | null;
+  feesAccruedUsd: number | null;
   feesClaimedUsd: number | null;
-  paidOutUsd: number | null;
 };
 
 export type SiteConfig = {
@@ -18,11 +16,9 @@ export type SiteConfig = {
 };
 
 const EMPTY: Overrides = {
-  callsInQueue: null,
-  callsLive: null,
   tokensLaunched: null,
+  feesAccruedUsd: null,
   feesClaimedUsd: null,
-  paidOutUsd: null,
 };
 
 /**

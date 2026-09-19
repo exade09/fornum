@@ -7,31 +7,31 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy"
-      updated="18 September 2026"
+      updated="19 September 2026"
       intro="The only sensitive thing we handle is a phone number. Here is where it goes, where it does not, and how to remove it"
       sections={[
         {
           title: "What goes on chain",
           body: [
-            "The token account stores the mint, the creator wallet, a salted hash of the recipient number, the amounts claimed and paid, the queue index and the status. The number itself never goes on chain",
+            "The token account stores the mint, the launch wallet, a salted hash of the number the launch came from, and the amounts collected and claimed. The number itself never goes on chain",
           ],
         },
         {
           title: "What stays off chain",
           body: [
-            "The mapping between hash and number, the time consent was given, and technical notes about call attempts. Whoever places a call receives the number for the length of that call and nothing more",
+            "The WhatsApp thread, the mapping between hash and number, and the pictures you send for the token image. The site shows a masked number to everyone, and the full one to nobody",
           ],
         },
         {
           title: "What we do not do",
           body: [
-            "We do not sell numbers, pass them to third parties for their own outreach, enrich them from outside sources, or link numbers across different launches",
+            "We do not message you first, we do not sell numbers, we do not pass them to third parties for their own outreach, and we do not link numbers across different launches",
           ],
         },
         {
           title: "Removal",
           body: [
-            "Revoking consent removes the number from every future call. Past payouts stay on chain because they cannot be deleted, but they only ever contained the hash",
+            "Ask in the thread and we delete the number and the conversation. Tokens already launched stay on chain because they cannot be deleted, but they only ever carried the hash",
           ],
         },
       ]}

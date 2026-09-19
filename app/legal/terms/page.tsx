@@ -7,39 +7,44 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of use"
-      updated="18 September 2026"
-      intro="Fornum is an interface to a Solana program that deploys tokens, claims their creator fees and pays them out by phone. Using the site means agreeing to what follows"
+      updated="19 September 2026"
+      intro="Fornum launches tokens on Solana on request and holds the creator fees those tokens earn until the person who launched them claims. Using the service means agreeing to what follows"
       sections={[
         {
           title: "What the service does",
           body: [
-            "Fornum deploys a token mint with our treasury as the creator fee recipient, claims the fees that accrue, and sends them to the number named at launch once its owner confirms. We are not a payment institution and we do not hold user funds outside token escrow",
+            "You send a name, a ticker and a picture over WhatsApp. We deploy the mint on pump.fun from a Fornum launch wallet and reply with the mint address. The creator fees that mint earns accrue to that wallet and are recorded against the number the request came from",
           ],
         },
         {
-          title: "Consent comes first",
+          title: "Claiming",
           body: [
-            "A number is dialed only while its owner keeps consent active. Whoever launches a token confirms they have the right to name that number",
-            "If consent is missing or is pulled, the call is dropped and the fees stay in escrow for the launcher to redirect or withdraw",
+            "Only the number a launch came from can claim its fees, unless that number handed them to another number. Claims go to a Solana address you provide, and network fees come out of the amount claimed",
+            "We keep a share of the creator fees as our fee. The share in force is the one shown on the site at the time of the launch",
           ],
         },
         {
-          title: "What a call may not say",
+          title: "Handing fees over",
           body: [
-            "Calls must not misrepresent who is calling, what the message is, or the nature of the asset, and must not push the listener to buy anything under time pressure",
-            "We can stop a call and return the escrow if the script breaks this rule",
+            "Pointing the fees at another number is final. Everything the token earns afterwards, and anything unclaimed at that moment, belongs to that number",
+          ],
+        },
+        {
+          title: "What you must not launch",
+          body: [
+            "Tokens impersonating a real person, company or project, or presented as anything other than what they are. We can decline a launch or stop holding fees for one, and will say so in the thread",
           ],
         },
         {
           title: "Not financial advice",
           body: [
-            "Neither the service nor the content of a call is a recommendation to buy or sell anything. Trading decisions are yours alone",
+            "Nothing on this site is a recommendation to buy or sell anything. Tokens launched here carry no promise of value and most of them go to zero",
           ],
         },
         {
           title: "Liability",
           body: [
-            "The service is provided as is. We are not responsible for carrier behaviour, WhatsApp availability or the state of the Solana network",
+            "The service is provided as is. We are not responsible for the availability of WhatsApp, pump.fun or the Solana network, nor for the market behaviour of any token",
           ],
         },
       ]}

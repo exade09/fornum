@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import type { CallStatus, TokenStatus } from "@/lib/data";
+import type { TokenStatus } from "@/lib/data";
 
 /* ------------------------------------------------------------------ */
 /* Card                                                                */
@@ -27,38 +27,6 @@ export function Card({
 /* ------------------------------------------------------------------ */
 /* Status chips                                                        */
 /* ------------------------------------------------------------------ */
-
-const CALL_STATUS: Record<CallStatus, { label: string; className: string }> = {
-  queued: { label: "In queue", className: "bg-queued/15 text-queued" },
-  verifying: { label: "Confirming", className: "bg-warning/15 text-warning" },
-  dialing: { label: "On the call", className: "bg-dialing/15 text-dialing" },
-  answered: { label: "Answered", className: "bg-brand/15 text-brand" },
-  missed: { label: "No answer", className: "bg-primary/10 text-secondary" },
-};
-
-export function CallChip({
-  status,
-  className,
-}: {
-  status: CallStatus;
-  className?: string;
-}) {
-  const s = CALL_STATUS[status];
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold",
-        s.className,
-        className,
-      )}
-    >
-      {status === "dialing" && (
-        <span className="animate-breathe motion-reduce:animate-none size-1.5 rounded-full bg-current" />
-      )}
-      {s.label}
-    </span>
-  );
-}
 
 const TOKEN_STATUS: Record<TokenStatus, { label: string; className: string }> =
   {

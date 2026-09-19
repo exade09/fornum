@@ -1,23 +1,25 @@
-import { HeroStats, LiveCallBadge } from "@/components/home/live-stats";
+import Link from "next/link";
+import { HeroStats } from "@/components/home/live-stats";
 import { NumberPlate } from "@/components/home/number-plate";
 import { PhoneThread } from "@/components/home/phone-thread";
+import { ArrowRightIcon } from "@/components/icons";
 import { siteConfig } from "@/lib/config";
 
 const STEPS = [
   {
     n: "01",
     title: "Text LAUNCH",
-    text: "One message to the number above starts a thread",
+    text: "One message to the number above, no app and no wallet needed",
   },
   {
     n: "02",
-    title: "Send a name and a ticker",
-    text: "We deploy the mint with the fees pointed back at your number",
+    title: "Send a name, a ticker and a picture",
+    text: "We deploy it on pump.fun and send the mint address back in the thread",
   },
   {
     n: "03",
-    title: "Pick up when we call",
-    text: "Confirm it is you, and the fees go out in dollars",
+    title: "Claim the fees here",
+    text: "Sign in with the same number, connect a wallet and take what the token earned",
   },
 ];
 
@@ -26,7 +28,6 @@ export default function HomePage() {
 
   return (
     <>
-      {/* glow behind the hero, off to the side rather than centred */}
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[620px] overflow-hidden">
         <div className="animate-orb-float motion-reduce:animate-none absolute -top-48 -left-32 size-[620px] rounded-full bg-brand/[0.07] blur-3xl" />
         <div
@@ -35,18 +36,17 @@ export default function HomePage() {
         />
       </div>
 
-      <section className="mx-auto w-full px-4 pt-12 pb-16 lg:px-6 xl:max-w-7xl">
+      <section className="mx-auto w-full px-4 pt-14 pb-16 lg:px-6 xl:max-w-7xl">
         <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div className="animate-section-in flex flex-col items-start gap-7">
-            <LiveCallBadge />
-
             <h1 className="shimmer-text motion-reduce:animate-none max-w-[14ch] font-display text-4xl leading-[1.02] font-normal tracking-tight sm:text-5xl lg:text-[58px]">
               Launch a token with one message
             </h1>
 
             <p className="max-w-[48ch] text-base text-secondary sm:text-lg">
-              No forms, no dashboard. Text Fornum on WhatsApp, and the creator
-              fees of the token you launch come back to that same number
+              Text Fornum on WhatsApp with a name, a ticker and a picture. The
+              token goes live on pump.fun and its creator fees stay yours to
+              claim
             </p>
 
             <NumberPlate display={display} e164={e164} />
@@ -56,7 +56,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* numbers as one banded strip, the only stat block on the page */}
       <section className="mx-auto w-full px-4 lg:px-6 xl:max-w-7xl">
         <HeroStats />
       </section>
@@ -77,6 +76,14 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
+
+        <Link
+          href="/tokens"
+          className="group mt-10 flex w-fit items-center gap-1.5 text-sm font-bold text-brand"
+        >
+          See what has been launched
+          <ArrowRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
       </section>
     </>
   );

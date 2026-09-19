@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import { Card } from "@/components/ui/primitives";
 import { ACCOUNT_LAYOUT } from "@/lib/data";
 
-/** The path a launch takes, each node is one instruction in the program */
+/** The path a launch takes, from a message to money in a wallet */
 const FLOW = [
-  { x: 60, label: "Launch", sub: "mint deployed here" },
-  { x: 230, label: "Trading", sub: "creator fees build up" },
-  { x: 400, label: "Claim", sub: "fees pulled on chain" },
-  { x: 570, label: "Consent", sub: "number confirms once" },
-  { x: 740, label: "Call", sub: "voice or operator" },
-  { x: 910, label: "Payout", sub: "dollars on the phone" },
+  { x: 60, label: "Message", sub: "name, ticker, picture" },
+  { x: 250, label: "Launch", sub: "deployed on pump.fun" },
+  { x: 440, label: "Trading", sub: "creator fees build up" },
+  { x: 630, label: "Sign in", sub: "same number, on the site" },
+  { x: 820, label: "Claim", sub: "fees to your wallet" },
 ];
 
 export const metadata: Metadata = { title: "Docs" };
@@ -17,43 +16,35 @@ export const metadata: Metadata = { title: "Docs" };
 const SECTIONS = [
   {
     t: "What Fornum does",
-    d: "Fornum deploys your token on Solana with our treasury set as the creator fee recipient. As people trade it, fees build up. We claim them, call the number you named, and send the money in dollars once the owner confirms",
+    d: "You send a message on WhatsApp with a name, a ticker and a picture. We deploy that token on pump.fun from a Fornum launch wallet and send the mint address back in the same thread. The creator fees the token earns are yours, and you take them from this site",
   },
   {
     t: "Why the token has to come from here",
-    d: "Creator fees go wherever the mint was configured to send them, and that is fixed at launch. A token deployed somewhere else pays its fees somewhere else, so there is nothing for us to claim and nobody on file to pay. That is why every token on the site was launched through Fornum",
+    d: "Creator fees go wherever the mint was configured to send them, and that is fixed at launch. A token deployed somewhere else pays its fees somewhere else, so there is nothing for us to hold for you. That is why every token on the site went through the thread",
   },
   {
     t: "Launching",
-    d: "Pick a name and a ticker, add an image if you have one, and enter the WhatsApp number the fees should reach. We deploy the mint and write the number, hashed, into the token account",
+    d: "Text LAUNCH to the number on the home page. Send the name, the ticker and the picture as a photo, not as a link. A person reads it, deploys the token and replies with the mint address. It usually takes a couple of minutes",
   },
   {
-    t: "Already launched somewhere else",
-    d: "You can point an existing mint at us only if its fee recipient is already the Fornum treasury. If it is not, the fees are not ours to claim and the form will tell you so",
+    t: "Where the fees sit",
+    d: "On the launch wallet that deployed your mint. They are recorded against the number the launch came from, so the site can show exactly what is yours and what is left to take",
   },
   {
-    t: "Confirming the number",
-    d: "The owner of the number gets one message and confirms once. Until that happens the fees sit in escrow. Consent can be pulled at any time on the consent page, which drops every pending call to that number",
+    t: "Claiming",
+    d: "Sign in with the number you launched from, open your token and paste a Solana address. The claim sends what has accrued to that address and leaves a transaction on the token page",
   },
   {
-    t: "The call",
-    d: "A recorded voice reads the payout message, or a live operator does it for a higher rate. Either way the script is stored with the token and shown on its page, so anyone can read what was said",
+    t: "Handing the fees to somebody else",
+    d: "On the token page you can point the fees at another WhatsApp number. From that moment everything the token earns, including what is unclaimed, belongs to that number and only they can take it. It cannot be undone",
   },
   {
-    t: "The queue",
-    d: "Calls run one at a time. Your position is a field in the token account, so the number on the site is the number in the program. It moves as calls ahead of you finish",
-  },
-  {
-    t: "Getting paid",
-    d: "After a confirmed call the escrow releases and the payout goes out in dollars. Each payout leaves a receipt you can open from the payouts page",
-  },
-  {
-    t: "If nobody answers",
-    d: "We retry, then stop. Fees that cannot be delivered stay in escrow and the launcher can point them at a different number or withdraw them",
+    t: "What it costs",
+    d: "Launching is free for you. Fornum keeps a share of the creator fees, the rest is yours. Network fees come out of the claim itself",
   },
   {
     t: "Privacy",
-    d: "Only a salted hash of the number goes on chain. The mapping between hash and number lives off chain and is handed to whoever places the call, for the length of that call",
+    d: "Only a salted hash of the number is written on chain. The mapping between hash and number stays off chain, and the site never shows a full number to anyone but its owner",
   },
 ];
 
@@ -65,8 +56,8 @@ export default function DocsPage() {
         How Fornum works
       </h1>
       <p className="mt-4 max-w-[68ch] text-base text-secondary">
-        Launch a token here, name one WhatsApp number, and its creator fees end
-        up on that phone. Everything below is the detail behind that sentence
+        One message launches a token, and the fees it earns stay yours. Below is
+        the detail behind that sentence
       </p>
 
       <nav className="mt-8">
@@ -108,17 +99,14 @@ export default function DocsPage() {
 
         <article className="flex flex-col gap-3">
           <h2 className="text-lg font-bold text-primary">
-            Where the money goes
+            From a message to a wallet
           </h2>
-          <p className="max-w-[68ch] text-sm text-secondary">
-            Nothing moves until the number confirms and the call goes through
-          </p>
           <Card sheen className="overflow-x-auto p-5">
             <svg
-              viewBox="0 0 990 160"
-              className="h-40 w-full min-w-[900px]"
+              viewBox="0 0 900 160"
+              className="h-40 w-full min-w-[840px]"
               role="img"
-              aria-label="Launch, trading, claim, consent, call, payout"
+              aria-label="Message, launch, trading, sign in, claim"
             >
               {FLOW.slice(0, -1).map((n, i) => (
                 <line
@@ -179,8 +167,8 @@ export default function DocsPage() {
         <article className="flex flex-col gap-3">
           <h2 className="text-lg font-bold text-primary">Token account</h2>
           <p className="max-w-[68ch] text-sm text-secondary">
-            One account per launched mint. The queue index and the status live
-            here too, which is why the site and the program always agree
+            One account per launched mint, holding what was collected, what was
+            claimed and the hash of the number it belongs to
           </p>
           <div className="overflow-hidden rounded-xl border border-primary/[0.06] bg-card font-mono text-xs">
             <div className="flex gap-4 border-b border-primary/[0.06] px-4 py-2 text-[10px] text-secondary">
