@@ -11,5 +11,10 @@
   "banner": {
     "enabled": false,
     "text": ""
+  },
+  "whatsapp": {
+    "display": "+1 (415) 555-0142",
+    "e164": "14155550142",
+    "_comment": "Placeholder in the reserved 555-01xx fictional range, so it cannot ring a real person. Swap both fields when the Business number is live."
   }
 }

@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CheckIcon, CloseIcon, MenuIcon, PhoneIcon } from "@/components/icons";
+import {
+  CheckIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  MenuIcon,
+  WhatsAppIcon,
+} from "@/components/icons";
+import { siteConfig } from "@/lib/config";
 import { Brand } from "@/components/shell/brand";
 import { NAV_ITEMS } from "@/lib/nav";
 import { cn } from "@/lib/cn";
@@ -19,13 +26,7 @@ function useIsActive() {
  * sections, wallet and the launch button. There is no bar across the top, so
  * every page starts at its own title
  */
-export function SideNav({
-  queued,
-  account,
-}: {
-  queued: number;
-  account: string | null;
-}) {
+export function SideNav({ account }: { account: string | null }) {
   const isActive = useIsActive();
 
   return (
@@ -71,17 +72,7 @@ export function SideNav({
       </nav>
 
       <div className="flex shrink-0 flex-col gap-2 border-t px-4 py-4">
-        <Link
-          href="/queue"
-          className="group mb-1 flex items-center gap-2 rounded-lg px-1 py-1 text-xs text-secondary transition-colors hover:text-primary"
-        >
-          <span className="relative flex size-2 items-center justify-center">
-            <span className="animate-ring-pulse motion-reduce:animate-none absolute size-2 rounded-full bg-brand" />
-            <span className="size-2 rounded-full bg-brand" />
-          </span>
-          <PhoneIcon className="size-3.5 text-brand" />
-          <span className="tnum">{queued} in the queue</span>
-        </Link>
+        <NumberRow />
 
         <AccountRow account={account} />
 
@@ -211,34 +202,71 @@ export function MobileNav({ account }: { account: string | null }) {
   );
 }
 
+/** The line everything runs through, always in reach */
+function NumberRow() {
+  const { display, e164 } = siteConfig.whatsapp;
+
+  return (
+    <a
+      href={`https://wa.me/${e164}?text=LAUNCH`}
+      target="_blank"
+      rel="noreferrer"
+      className="group flex items-center gap-2 rounded-lg px-1 py-1 text-xs transition-colors"
+    >
+      <span className="relative flex size-2 shrink-0 items-center justify-center">
+        <span className="animate-ring-pulse motion-reduce:animate-none absolute size-2 rounded-full bg-brand" />
+        <span className="size-2 rounded-full bg-brand" />
+      </span>
+      <WhatsAppIcon className="size-3.5 shrink-0 text-brand" />
+      <span className="tnum truncate text-secondary transition-colors group-hover:text-primary">
+        {display}
+      </span>
+    </a>
+  );
+}
+
 /**
- * Signed in or not, in one small block. The wallet button moved to the launch
- * form, which is the only place a signature is needed
+ * The account plate, present whether or not anyone is signed in, so the column
+ * always ends the same way
  */
 function AccountRow({ account }: { account: string | null }) {
   if (!account) {
     return (
       <Link
         href="/signin"
-        className="flex h-10 items-center justify-center rounded-full border text-sm font-bold text-primary transition-colors hover:bg-card"
+        className="group flex items-center gap-2.5 rounded-xl border border-primary/[0.06] bg-card px-3 py-2.5 transition-colors hover:border-primary/20"
       >
-        Sign in
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background/70 ring-1 ring-primary/[0.08]">
+          <WhatsAppIcon className="size-4 text-secondary" />
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-xs font-bold text-primary">
+            Not signed in
+          </span>
+          <span className="truncate text-[11px] text-secondary">
+            Use your phone number
+          </span>
+        </span>
+        <ChevronRightIcon className="ml-auto size-4 shrink-0 text-secondary transition-transform group-hover:translate-x-0.5" />
       </Link>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-primary/[0.06] bg-card px-3 py-2">
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand/15">
-        <CheckIcon className="size-3.5 text-brand" />
+    <div className="flex items-center gap-2.5 rounded-xl border border-primary/[0.06] bg-card px-3 py-2.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand/15">
+        <CheckIcon className="size-4 text-brand" />
       </span>
-      <span className="tnum min-w-0 truncate text-xs text-primary">
-        {account}
+      <span className="flex min-w-0 flex-col">
+        <span className="tnum truncate text-xs font-bold text-primary">
+          {account}
+        </span>
+        <span className="truncate text-[11px] text-secondary">Signed in</span>
       </span>
       <form action="/api/auth/signout" method="post" className="ml-auto">
         <button
           type="submit"
-          className="text-xs text-secondary transition-colors hover:text-primary"
+          className="text-[11px] text-secondary transition-colors hover:text-primary"
         >
           Out
         </button>

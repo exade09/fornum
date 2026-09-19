@@ -35,7 +35,7 @@ Production build is `npm run build`, serve it with `npm start`.
 ## Routes
 
 ```
-/                 hero, live counters, bento of product tiles
+/                 the number, the thread it runs through, live counters
 /launch           deploy a token and point its fees at a number
 /tokens           everything launched here, fees and recipients
 /queue            call queue with live position
@@ -51,6 +51,14 @@ Production build is `npm run build`, serve it with `npm start`.
 Only five of these are in the navigation: home, launch, tokens, calls, payouts.
 The rest are reached from the footer, from a card, or from a link in a call.
 ```
+
+## The number
+
+Every launch, confirmation and payout goes through one WhatsApp thread, so the
+number is the largest element on the home page rather than a footnote. It lives
+in `content/site-config.json` under `whatsapp`, currently a placeholder in the
+reserved `555-01xx` fictional range so it cannot ring a real person. Swap both
+`display` and `e164` when the Business number is live.
 
 ## Counters
 

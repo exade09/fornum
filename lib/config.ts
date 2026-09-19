@@ -12,6 +12,8 @@ export type Overrides = {
 export type SiteConfig = {
   overrides: Overrides;
   banner: { enabled: boolean; text: string };
+  /** the number every launch and every payout goes through */
+  whatsapp: { display: string; e164: string };
 };
 
 const EMPTY: Overrides = {
@@ -51,6 +53,10 @@ export const siteConfig: SiteConfig = {
   banner: {
     enabled: fileConfig.banner?.enabled ?? false,
     text: fileConfig.banner?.text ?? "",
+  },
+  whatsapp: {
+    display: fileConfig.whatsapp?.display ?? "+1 (415) 555-0142",
+    e164: fileConfig.whatsapp?.e164 ?? "14155550142",
   },
 };
 

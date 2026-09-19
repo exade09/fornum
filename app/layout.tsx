@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { MobileNav, SideNav } from "@/components/shell/side-nav";
 import { SiteFooter } from "@/components/shell/footer";
-import { getStats } from "@/lib/data";
 import { readSession } from "@/lib/auth/session";
 import "./globals.css";
 
@@ -33,7 +32,6 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const stats = getStats();
   const session = await readSession();
 
   return (
@@ -50,10 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
 
-        <SideNav
-          queued={stats.callsInQueue}
-          account={session?.masked ?? null}
-        />
+        <SideNav account={session?.masked ?? null} />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileNav account={session?.masked ?? null} />
