@@ -1,9 +1,9 @@
 {
-  "_comment": "Counters are computed from real activity. A value in overrides is shown instead. demoData swaps the empty live set for sample rows.",
+  "_comment": "Counters come from the database. A value in overrides is shown instead. Amounts are lamports. demoData swaps the empty store for sample rows.",
   "overrides": {
     "tokensLaunched": null,
-    "feesAccruedUsd": null,
-    "feesClaimedUsd": null
+    "feesAccruedLamports": null,
+    "feesClaimedLamports": null
   },
   "banner": {
     "enabled": false,

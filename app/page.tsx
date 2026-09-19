@@ -2,7 +2,7 @@ import Link from "next/link";
 import { HeroStats } from "@/components/home/live-stats";
 import { NumberPlate } from "@/components/home/number-plate";
 import { PhoneThread } from "@/components/home/phone-thread";
-import { ArrowRightIcon } from "@/components/icons";
+import { ArrowRightIcon, WhatsAppIcon } from "@/components/icons";
 import { siteConfig } from "@/lib/config";
 
 const STEPS = [
@@ -50,6 +50,20 @@ export default function HomePage() {
             </p>
 
             <NumberPlate display={display} e164={e164} />
+
+            {/* the other way to use it: the fees never have to be yours */}
+            <a
+              href={`https://wa.me/${e164}?text=${encodeURIComponent("LAUNCH and send the fees to ")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="group -mt-2 flex items-center gap-2 rounded-full border border-primary/[0.08] bg-card px-4 py-2.5 text-sm text-secondary transition-colors hover:border-primary/20 hover:text-primary"
+            >
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand/15">
+                <WhatsAppIcon className="size-3.5 text-brand" />
+              </span>
+              Or launch and route the fees to another number
+              <ArrowRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </a>
           </div>
 
           <PhoneThread number={display} />

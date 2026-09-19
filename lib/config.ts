@@ -2,8 +2,8 @@ import raw from "@/content/site-config.json";
 
 export type Overrides = {
   tokensLaunched: number | null;
-  feesAccruedUsd: number | null;
-  feesClaimedUsd: number | null;
+  feesAccruedLamports: number | null;
+  feesClaimedLamports: number | null;
 };
 
 export type SiteConfig = {
@@ -17,8 +17,8 @@ export type SiteConfig = {
 
 const EMPTY: Overrides = {
   tokensLaunched: null,
-  feesAccruedUsd: null,
-  feesClaimedUsd: null,
+  feesAccruedLamports: null,
+  feesClaimedLamports: null,
 };
 
 /**

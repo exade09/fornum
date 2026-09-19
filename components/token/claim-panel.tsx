@@ -1,43 +1,96 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Card } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/segmented";
-import { ConnectWallet } from "@/components/wallet/connect-wallet";
 import { ArrowRightIcon, CheckIcon, WhatsAppIcon } from "@/components/icons";
-import { usd } from "@/lib/data";
+import { shortAddress, sol, usdFrom } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 type Mode = "claim" | "hand over";
 
 /**
- * Everything the fee recipient can do with a token, in one panel: take the
- * money, or point it at somebody else's number
+ * Everything the fee recipient can do with a token: take the money, or point it
+ * at somebody else's number
  *
- * Both actions are gated on being signed in as the recipient, so the panel
- * renders read only for everyone else
+ * Both are gated server side as well. What is rendered here only decides what
+ * is worth showing, the routes re-check the session against the token
  */
 export function ClaimPanel({
-  amount,
+  tokenId,
+  lamports,
   recipient,
   canClaim,
   signedIn,
+  price,
 }: {
-  /** claimable right now, USD */
-  amount: number;
+  tokenId: string;
+  /** claimable right now, lamports */
+  lamports: number;
   /** masked number the fees belong to */
   recipient: string;
-  /** the signed in number matches the recipient */
   canClaim: boolean;
   signedIn: boolean;
+  price: number | null;
 }) {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("claim");
   const [wallet, setWallet] = useState("");
   const [phone, setPhone] = useState("");
-  const [done, setDone] = useState<null | Mode>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState<null | { mode: Mode; detail: string }>(null);
 
   const walletReady = wallet.trim().length >= 32;
   const phoneReady = phone.replace(/\D/g, "").length >= 8;
+  const usdLabel = usdFrom(lamports, price);
+
+  async function claim() {
+    if (!walletReady || busy) return;
+    setBusy(true);
+    setError("");
+
+    const res = await fetch("/api/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tokenId, wallet: wallet.trim() }),
+    });
+    setBusy(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? "The claim did not go through");
+      return;
+    }
+
+    const body = (await res.json()) as { tx: string };
+    setDone({ mode: "claim", detail: body.tx });
+    router.refresh();
+  }
+
+  async function handOver() {
+    if (!phoneReady || busy) return;
+    setBusy(true);
+    setError("");
+
+    const res = await fetch("/api/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tokenId, phone }),
+    });
+    setBusy(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? "Could not hand them over");
+      return;
+    }
+
+    const body = (await res.json()) as { assignedTo: string };
+    setDone({ mode: "hand over", detail: body.assignedTo });
+    router.refresh();
+  }
 
   if (done) {
     return (
@@ -49,13 +102,23 @@ export function ClaimPanel({
           <CheckIcon className="size-7 text-brand" />
         </span>
         <span className="text-lg font-bold text-primary">
-          {done === "claim" ? "Claim submitted" : "Fees handed over"}
+          {done.mode === "claim" ? "Fees sent" : "Fees handed over"}
         </span>
-        <p className="max-w-[42ch] text-sm text-secondary">
-          {done === "claim"
-            ? "The transfer shows up on this page and in Claims once it is on chain"
-            : `${phone} can now claim the fees of this token by signing in with that number`}
-        </p>
+        {done.mode === "claim" ? (
+          <a
+            href={`https://solscan.io/tx/${done.detail}`}
+            target="_blank"
+            rel="noreferrer"
+            className="group flex items-center gap-1 font-mono text-xs text-secondary transition-colors hover:text-primary"
+          >
+            {shortAddress(done.detail, 8, 8)}
+            <ArrowRightIcon className="size-3 transition-transform group-hover:translate-x-0.5" />
+          </a>
+        ) : (
+          <p className="tnum max-w-[42ch] text-sm text-secondary">
+            {done.detail} can claim this token now
+          </p>
+        )}
       </Card>
     );
   }
@@ -67,11 +130,14 @@ export function ClaimPanel({
           CLAIMABLE NOW
         </span>
         <span className="tnum font-display text-3xl font-normal text-brand">
-          {usd(amount, 2)}
+          {sol(lamports)}
         </span>
-        <span className="flex items-center gap-1.5 text-xs text-secondary">
-          <WhatsAppIcon className="size-3.5 text-brand" />
-          <span className="tnum">{recipient}</span>
+        <span className="flex items-center gap-2 text-xs text-secondary">
+          {usdLabel && <span className="tnum">{usdLabel}</span>}
+          <span className="flex items-center gap-1.5">
+            <WhatsAppIcon className="size-3.5 text-brand" />
+            <span className="tnum">{recipient}</span>
+          </span>
         </span>
       </div>
 
@@ -97,7 +163,10 @@ export function ClaimPanel({
         <div className="flex flex-col gap-4 border-t border-primary/[0.06] pt-4">
           <Segmented<Mode>
             value={mode}
-            onChange={setMode}
+            onChange={(next) => {
+              setMode(next);
+              setError("");
+            }}
             options={[
               { id: "claim", label: "Claim" },
               { id: "hand over", label: "Hand over" },
@@ -118,24 +187,23 @@ export function ClaimPanel({
                 />
               </label>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled={!walletReady || amount <= 0}
-                  onClick={() => setDone("claim")}
-                  className={cn(
-                    "flex h-10 items-center rounded-full bg-primary px-5 text-sm font-bold text-background transition-colors hover:bg-primary-hover",
-                    "disabled:cursor-not-allowed disabled:opacity-40",
-                  )}
-                >
-                  Claim {usd(amount, 0)}
-                </button>
-                <ConnectWallet className="flex h-10" />
-              </div>
+              {error && <p className="text-xs text-error">{error}</p>}
+
+              <button
+                type="button"
+                disabled={!walletReady || lamports <= 0 || busy}
+                onClick={claim}
+                className={cn(
+                  "flex h-10 w-fit items-center rounded-full bg-primary px-5 text-sm font-bold text-background transition-colors hover:bg-primary-hover",
+                  "disabled:cursor-not-allowed disabled:opacity-40",
+                )}
+              >
+                {busy ? "Sending" : `Claim ${sol(lamports)}`}
+              </button>
 
               <span className="text-xs text-secondary">
-                Paste an address or connect a wallet to fill it in. Network fees
-                come out of the amount
+                The transfer goes out of the launch wallet straight to this
+                address. Network fees come out of the amount
               </span>
             </div>
           ) : (
@@ -156,16 +224,18 @@ export function ClaimPanel({
                 </span>
               </label>
 
+              {error && <p className="text-xs text-error">{error}</p>}
+
               <button
                 type="button"
-                disabled={!phoneReady}
-                onClick={() => setDone("hand over")}
+                disabled={!phoneReady || busy}
+                onClick={handOver}
                 className={cn(
                   "flex h-10 w-fit items-center rounded-full border px-5 text-sm font-bold text-primary transition-colors hover:bg-background/70",
                   "disabled:cursor-not-allowed disabled:opacity-40",
                 )}
               >
-                Hand over the fees
+                {busy ? "Handing over" : "Hand over the fees"}
               </button>
 
               <span className="text-xs text-secondary">

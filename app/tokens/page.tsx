@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { PageHero, StaleNotice } from "@/components/shell/page-hero";
 import { TokensBrowser } from "@/components/tokens/tokens-browser";
-import { TOKENS } from "@/lib/data";
+import { listTokens } from "@/lib/db/store";
+import { solPriceUsd } from "@/lib/solana/price";
 
 export const metadata: Metadata = { title: "Tokens" };
 
-export default function TokensPage() {
+export default async function TokensPage() {
+  const [tokens, price] = await Promise.all([listTokens(), solPriceUsd()]);
+
   return (
     <>
       <PageHero
@@ -15,13 +18,13 @@ export default function TokensPage() {
       />
 
       <StaleNotice>
-        {TOKENS.length > 0
-          ? "Showing the last confirmed state while the stream catches up with the chain"
+        {tokens.length > 0
+          ? "Balances follow the launch wallets, refreshed as claims land"
           : "Nothing has launched yet. The first token through the thread shows up here"}
       </StaleNotice>
 
       <section className="mx-auto w-full px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
-        <TokensBrowser />
+        <TokensBrowser tokens={tokens} price={price} />
       </section>
     </>
   );

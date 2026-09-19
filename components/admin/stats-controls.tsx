@@ -22,16 +22,16 @@ const FIELDS: {
     statKey: "tokensLaunched",
   },
   {
-    key: "feesAccruedUsd",
-    label: "Fees collected, USD",
+    key: "feesAccruedLamports",
+    label: "Fees collected, lamports",
     hint: "Everything the launch wallets have taken in",
-    statKey: "feesAccruedUsd",
+    statKey: "feesAccruedLamports",
   },
   {
-    key: "feesClaimedUsd",
-    label: "Claimed by owners, USD",
+    key: "feesClaimedLamports",
+    label: "Claimed by owners, lamports",
     hint: "Big number on the claims page",
-    statKey: "feesClaimedUsd",
+    statKey: "feesClaimedLamports",
   },
 ];
 

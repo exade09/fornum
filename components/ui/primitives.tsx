@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import type { TokenStatus } from "@/lib/data";
+import type { TokenStatus } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /* Card                                                                */

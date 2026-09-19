@@ -11,31 +11,31 @@ import {
 } from "@/components/ui/primitives";
 import { TokenMark } from "@/components/ui/token-mark";
 import { SearchIcon, WhatsAppIcon } from "@/components/icons";
-import {
-  TOKENS,
-  claimable,
-  compactUsd,
-  feeRecipient,
-  num,
-  usd,
-  type Token,
-} from "@/lib/data";
+import { compactUsd, num, sol, usdFrom } from "@/lib/format";
+import { claimableLamports, feeRecipientMasked, type Token } from "@/lib/types";
 
 type Filter = "all" | "unclaimed" | "claimed";
 type SortKey = "fees" | "cap" | "new";
 
-export function TokensBrowser() {
+export function TokensBrowser({
+  tokens,
+  price,
+}: {
+  tokens: Token[];
+  price: number | null;
+}) {
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("fees");
   const [query, setQuery] = useState("");
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return TOKENS.filter((t) => {
-      if (filter === "unclaimed") return claimable(t) > 0;
-      if (filter === "claimed") return t.feesClaimed > 0;
-      return true;
-    })
+    return tokens
+      .filter((t) => {
+        if (filter === "unclaimed") return claimableLamports(t) > 0;
+        if (filter === "claimed") return t.feesClaimedLamports > 0;
+        return true;
+      })
       .filter(
         (t) =>
           !q ||
@@ -44,11 +44,11 @@ export function TokensBrowser() {
           t.mint.toLowerCase().includes(q),
       )
       .sort((a, b) => {
-        if (sort === "cap") return b.marketCap - a.marketCap;
-        if (sort === "new") return a.ageMinutes - b.ageMinutes;
-        return b.feesAccrued - a.feesAccrued;
+        if (sort === "cap") return b.marketCapUsd - a.marketCapUsd;
+        if (sort === "new") return b.createdAt.localeCompare(a.createdAt);
+        return b.feesAccruedLamports - a.feesAccruedLamports;
       });
-  }, [filter, sort, query]);
+  }, [tokens, filter, sort, query]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -90,10 +90,10 @@ export function TokensBrowser() {
       {items.length === 0 ? (
         <EmptyState
           title={
-            TOKENS.length === 0 ? "Nothing launched yet" : "Nothing matches"
+            tokens.length === 0 ? "Nothing launched yet" : "Nothing matches"
           }
           description={
-            TOKENS.length === 0
+            tokens.length === 0
               ? "The first token launched over WhatsApp shows up here, with the fees it has earned"
               : "Try another ticker or clear the filters, the list updates as new tokens launch"
           }
@@ -101,7 +101,7 @@ export function TokensBrowser() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((t, i) => (
-            <TokenCard key={t.id} token={t} index={i} />
+            <TokenCard key={t.id} token={t} index={i} price={price} />
           ))}
         </div>
       )}
@@ -109,9 +109,20 @@ export function TokensBrowser() {
   );
 }
 
-function TokenCard({ token: t, index }: { token: Token; index: number }) {
-  const left = claimable(t);
-  const ratio = t.feesAccrued > 0 ? t.feesClaimed / t.feesAccrued : 0;
+function TokenCard({
+  token: t,
+  index,
+  price,
+}: {
+  token: Token;
+  index: number;
+  price: number | null;
+}) {
+  const left = claimableLamports(t);
+  const ratio =
+    t.feesAccruedLamports > 0
+      ? t.feesClaimedLamports / t.feesAccruedLamports
+      : 0;
 
   return (
     <Link
@@ -137,15 +148,20 @@ function TokenCard({ token: t, index }: { token: Token; index: number }) {
               FEES COLLECTED
             </span>
             <span className="tnum text-lg font-bold text-brand">
-              {usd(t.feesAccrued, 0)}
+              {sol(t.feesAccruedLamports)}
             </span>
+            {usdFrom(t.feesAccruedLamports, price) && (
+              <span className="tnum text-[11px] text-secondary">
+                {usdFrom(t.feesAccruedLamports, price)}
+              </span>
+            )}
           </div>
           <div className="flex flex-col items-end gap-0.5">
             <span className="text-[10px] font-bold tracking-wider text-secondary">
               MARKET CAP
             </span>
             <span className="tnum text-lg font-bold text-primary">
-              {compactUsd(t.marketCap)}
+              {compactUsd(t.marketCapUsd)}
             </span>
           </div>
         </div>
@@ -153,7 +169,7 @@ function TokenCard({ token: t, index }: { token: Token; index: number }) {
         <div className="flex flex-col gap-1.5">
           <Progress value={ratio} />
           <div className="flex items-center justify-between text-[11px] text-secondary">
-            <span className="tnum">{usd(left, 0)} left to claim</span>
+            <span className="tnum">{sol(left)} left to claim</span>
             <span className="tnum">{num(t.holders)} holders</span>
           </div>
         </div>
@@ -163,9 +179,9 @@ function TokenCard({ token: t, index }: { token: Token; index: number }) {
             <WhatsAppIcon className="size-3.5 text-brand" />
           </span>
           <span className="tnum truncate text-xs text-secondary">
-            {feeRecipient(t)}
+            {feeRecipientMasked(t)}
           </span>
-          {t.assignedTo && (
+          {t.assigneeMasked && (
             <span className="ml-auto shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-secondary">
               handed over
             </span>

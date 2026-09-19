@@ -14,12 +14,10 @@
 export type Channel = "sms" | "whatsapp";
 
 export type StartResult =
-  | { ok: true; channel: Channel; stub: boolean }
-  | { ok: false; error: string };
+  { ok: true; channel: Channel; stub: boolean } | { ok: false; error: string };
 
 export type CheckResult =
-  | { ok: true; phone: string }
-  | { ok: false; error: string };
+  { ok: true; phone: string } | { ok: false; error: string };
 
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
@@ -70,7 +68,10 @@ export async function startVerification(
 
   if (!res.ok) {
     const body = await res.text();
-    return { ok: false, error: `Provider rejected the request: ${body.slice(0, 200)}` };
+    return {
+      ok: false,
+      error: `Provider rejected the request: ${body.slice(0, 200)}`,
+    };
   }
 
   return { ok: true, channel, stub: false };

@@ -18,7 +18,7 @@ const RULES = [
   },
   {
     t: "Who gets the fees",
-    d: "The number that asked for the launch. Sign in here with that number to see the token and take what it earned",
+    d: "The number that asked for the launch, unless you name another one in the same message. Say who they should go to and they are theirs from the first trade",
   },
   {
     t: "What it costs you",

@@ -57,22 +57,39 @@ in `content/site-config.json` under `whatsapp`, currently a placeholder in the
 reserved `555-01xx` fictional range so it cannot ring a real person. Swap both
 `display` and `e164` when the Business number is live.
 
+## Database
+
+Schema is `db/schema.sql`, run it once against `DATABASE_URL`. Tables: tokens,
+claims and launch requests. Amounts are lamports, stored as bigint.
+
+Without `DATABASE_URL` the whole app falls back to an in memory store, so every
+page renders before anything is provisioned. That store resets on restart,
+which is the point: it is not a database. `lib/db/store.ts` is the only file
+that knows which one is in use.
+
+## Claiming
+
+Creator fees accrue to the launch wallet that deployed the mint. A claim is a
+plain SOL transfer out of it to an address the recipient gives us, so there is
+no program to call yet.
+
+`POST /api/claim` checks the session against the token's recipient hash, reads
+the wallet balance on chain, sends the transfer, then writes the claim and moves
+the claimed total in one transaction, so the same fees cannot go out twice. The
+wallet keeps a small reserve so it can always pay for the next transaction.
+
+`POST /api/assign` hands the fees of a token to another number. One way on
+purpose: the new holder can pass them on again, the sender cannot pull them
+back.
+
+`POST /api/admin/launch` is how the operator records a launch they did by hand.
+Guarded by `ADMIN_TOKEN`, used from `/admin`.
+
 ## Counters
 
-Every number on the site is computed from activity in `lib/data.ts`. To show a
-different figure, pin it:
-
-- edit `content/site-config.json` and push, the deploy picks it up
-- or set `FORNUM_OVERRIDES` on the host to the same object, which wins over the
-  file
-
-A key left as `null` falls back to the computed value, so nothing is ever
-invented by accident. `/admin` has a form that builds the JSON for you and shows
-which counters are currently pinned.
-
-```json
-{ "overrides": { "callsInQueue": 2, "callsLive": 1 } }
-```
+Every number comes from the database. To show a different figure, pin it in
+`content/site-config.json` or in `FORNUM_OVERRIDES` on the host. A key left as
+`null` falls back to the computed value.
 
 ## Icons
 

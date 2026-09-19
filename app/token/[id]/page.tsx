@@ -9,40 +9,40 @@ import {
   ChevronLeftIcon,
   WhatsAppIcon,
 } from "@/components/icons";
+import { compactUsd, num, shortAddress, sol, usdFrom } from "@/lib/data";
+import { claimsForToken, getToken } from "@/lib/db/store";
 import {
-  TOKENS,
-  claimable,
-  claimsForToken,
-  compactUsd,
-  feeRecipient,
-  getToken,
-  num,
-  usd,
-} from "@/lib/data";
+  claimableLamports,
+  feeRecipientHash,
+  feeRecipientMasked,
+} from "@/lib/types";
+import { solPriceUsd } from "@/lib/solana/price";
 import { readSession } from "@/lib/auth/session";
-
-export function generateStaticParams() {
-  return TOKENS.map((t) => ({ id: t.id }));
-}
 
 export async function generateMetadata({
   params,
 }: PageProps<"/token/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const t = getToken(id);
+  const t = await getToken(id);
   return { title: t ? `${t.symbol}, ${t.name}` : "Token" };
 }
 
 export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
   const { id } = await params;
-  const t = getToken(id);
+  const t = await getToken(id);
   if (!t) notFound();
 
-  const session = await readSession();
-  const recipient = feeRecipient(t);
-  const left = claimable(t);
-  const claims = claimsForToken(t.id);
-  const claimedRatio = t.feesAccrued > 0 ? t.feesClaimed / t.feesAccrued : 0;
+  const [claims, price, session] = await Promise.all([
+    claimsForToken(t.id),
+    solPriceUsd(),
+    readSession(),
+  ]);
+
+  const left = claimableLamports(t);
+  const ratio =
+    t.feesAccruedLamports > 0
+      ? t.feesClaimedLamports / t.feesAccruedLamports
+      : 0;
 
   return (
     <div className="mx-auto flex w-full flex-col gap-3 px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
@@ -75,7 +75,7 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
                 rel="noreferrer"
                 className="group mt-1 flex w-fit items-center gap-1 font-mono text-[11px] text-secondary transition-colors hover:text-primary"
               >
-                {t.mint.slice(0, 10)}…{t.mint.slice(-8)}
+                {shortAddress(t.mint, 10, 8)}
                 <ArrowRightIcon className="size-3 transition-transform group-hover:translate-x-0.5" />
               </a>
             </div>
@@ -84,7 +84,7 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
                 MARKET CAP
               </span>
               <span className="tnum text-xl font-bold text-primary">
-                {compactUsd(t.marketCap)}
+                {compactUsd(t.marketCapUsd)}
               </span>
             </div>
           </Card>
@@ -97,27 +97,25 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
             <div className="flex flex-wrap items-end gap-x-12 gap-y-5">
               <Field
                 label="Fees collected"
-                value={usd(t.feesAccrued, 0)}
+                value={sol(t.feesAccruedLamports)}
                 accent="brand"
               />
-              <Field label="Already claimed" value={usd(t.feesClaimed, 0)} />
               <Field
-                label="Left to claim"
-                value={usd(left, 0)}
-                accent="queued"
+                label="Already claimed"
+                value={sol(t.feesClaimedLamports)}
               />
+              <Field label="Left to claim" value={sol(left)} accent="queued" />
               <Field label="Holders" value={num(t.holders)} />
             </div>
-            <Progress value={claimedRatio} />
+            <Progress value={ratio} />
             <span className="text-xs text-secondary">
-              Launched {t.launchedAgo} from{" "}
-              <span className="tnum text-primary/80">{t.owner}</span>
-              {t.assignedTo ? (
-                <>
-                  , fees handed to{" "}
-                  <span className="tnum text-primary/80">{t.assignedTo}</span>
-                </>
-              ) : null}
+              Fees land on the launch wallet{" "}
+              <span className="font-mono">
+                {shortAddress(t.launchWallet, 6, 6)}
+              </span>
+              {usdFrom(t.feesAccruedLamports, price)
+                ? `, worth about ${usdFrom(t.feesAccruedLamports, price)} today`
+                : ""}
             </span>
           </Card>
 
@@ -143,15 +141,12 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
                 style={{ animationDelay: `${160 + i * 55}ms` }}
               >
                 <span className="tnum text-sm font-bold text-primary">
-                  {usd(c.amount, 0)}
+                  {sol(c.amountLamports)}
                 </span>
                 <span className="truncate font-mono text-xs text-secondary">
-                  {c.wallet}
+                  {shortAddress(c.wallet, 6, 6)}
                 </span>
-                <span className="tnum ml-auto text-xs text-secondary">
-                  {c.ago}
-                </span>
-                <ArrowRightIcon className="size-3 text-secondary opacity-0 transition-opacity group-hover:opacity-100" />
+                <ArrowRightIcon className="ml-auto size-3 text-secondary opacity-0 transition-opacity group-hover:opacity-100" />
               </a>
             ))}
           </Card>
@@ -159,10 +154,12 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
 
         <div className="animate-section-in flex flex-col gap-3">
           <ClaimPanel
-            amount={left}
-            recipient={recipient}
+            tokenId={t.id}
+            lamports={left}
+            recipient={feeRecipientMasked(t)}
             signedIn={Boolean(session)}
-            canClaim={session?.masked === recipient}
+            canClaim={session?.sub === feeRecipientHash(t)}
+            price={price}
           />
 
           <Card className="flex flex-col gap-2 p-5 text-xs text-secondary">
@@ -173,8 +170,8 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
               The mint was deployed from a Fornum launch wallet, so pump.fun
               pays its creator fees to us
             </p>
-            <p className="flex items-center gap-1.5">
-              <WhatsAppIcon className="size-3.5 shrink-0 text-brand" />
+            <p className="flex items-start gap-1.5">
+              <WhatsAppIcon className="mt-0.5 size-3.5 shrink-0 text-brand" />
               They belong to the number that asked for the launch, and only that
               number can move them
             </p>
