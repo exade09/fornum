@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { MobileNav, SideNav } from "@/components/shell/side-nav";
 import { SiteFooter } from "@/components/shell/footer";
 import { getStats } from "@/lib/data";
+import { readSession } from "@/lib/auth/session";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,8 +32,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
   const stats = getStats();
+  const session = await readSession();
 
   return (
     <html
@@ -48,10 +50,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
 
-        <SideNav queued={stats.callsInQueue} />
+        <SideNav
+          queued={stats.callsInQueue}
+          account={session?.masked ?? null}
+        />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <MobileNav />
+          <MobileNav account={session?.masked ?? null} />
           <main id="main" className="relative flex-1">
             {children}
           </main>

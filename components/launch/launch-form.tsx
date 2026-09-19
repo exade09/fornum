@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/segmented";
 import { TokenMark } from "@/components/ui/token-mark";
 import { Waveform } from "@/components/ui/waveform";
+import { ConnectWallet } from "@/components/wallet/connect-wallet";
 import { cn } from "@/lib/cn";
 
 type Mode = "new" | "existing";
@@ -27,7 +28,8 @@ export function LaunchForm() {
   const digits = phone.replace(/\D/g, "").length;
   const phoneReady = digits >= 10;
   const ready =
-    phoneReady && (mode === "new" ? name.length > 1 && symbol.length > 1 : mint.length > 30);
+    phoneReady &&
+    (mode === "new" ? name.length > 1 && symbol.length > 1 : mint.length > 30);
 
   const previewSymbol = symbol.trim() || "NEW";
 
@@ -170,13 +172,17 @@ export function LaunchForm() {
           </div>
         </fieldset>
 
-        <button
-          type="button"
-          disabled={!ready}
-          className="flex h-11 w-fit items-center rounded-full bg-primary px-6 text-sm font-bold text-background transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {mode === "new" ? "Deploy and route fees" : "Route fees"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={!ready}
+            className="flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-background transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {mode === "new" ? "Deploy and route fees" : "Route fees"}
+          </button>
+          {/* the signature is needed here and nowhere else */}
+          <ConnectWallet className="flex h-11" />
+        </div>
       </Card>
 
       <aside className="flex h-fit flex-col gap-3">

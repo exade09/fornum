@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero, StaleNotice } from "@/components/shell/page-hero";
 import { PayoutsBrowser } from "@/components/payouts/payouts-browser";
+import { AnalyticsBoard } from "@/components/analytics/analytics-board";
 import { Card } from "@/components/ui/primitives";
 import { RollingNumber } from "@/components/ui/rolling-number";
 import { TokenMark } from "@/components/ui/token-mark";
@@ -89,6 +90,11 @@ export default function PayoutsPage() {
             </Link>
           ))}
         </Card>
+      </section>
+
+      {/* protocol numbers live here now, they are the same money story */}
+      <section className="mx-auto w-full px-4 pb-10 lg:px-6 xl:max-w-7xl">
+        <AnalyticsBoard stats={getStats()} />
       </section>
     </>
   );

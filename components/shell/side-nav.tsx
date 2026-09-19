@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CloseIcon, MenuIcon, PhoneIcon, SearchIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon, MenuIcon, PhoneIcon } from "@/components/icons";
 import { Brand } from "@/components/shell/brand";
-import { ConnectWallet } from "@/components/wallet/connect-wallet";
 import { NAV_ITEMS } from "@/lib/nav";
 import { cn } from "@/lib/cn";
 
@@ -20,14 +19,20 @@ function useIsActive() {
  * sections, wallet and the launch button. There is no bar across the top, so
  * every page starts at its own title
  */
-export function SideNav({ queued }: { queued: number }) {
+export function SideNav({
+  queued,
+  account,
+}: {
+  queued: number;
+  account: string | null;
+}) {
   const isActive = useIsActive();
 
   return (
     <aside className="sticky top-0 z-50 hidden h-svh w-[260px] shrink-0 flex-col border-r bg-background nav:flex">
       <Link
         href="/"
-        className="group flex h-[68px] shrink-0 items-center gap-2.5 px-5 text-primary"
+        className="group flex h-[68px] shrink-0 items-center gap-2.5 px-5 pb-1 text-primary"
         aria-label="Fornum home"
       >
         <Brand
@@ -36,18 +41,6 @@ export function SideNav({ queued }: { queued: number }) {
         />
         <span className="text-base font-bold tracking-tight">Fornum</span>
       </Link>
-
-      <div className="px-4 pb-4">
-        <label className="relative flex h-9 items-center">
-          <SearchIcon className="pointer-events-none absolute left-3 size-4 text-secondary" />
-          <span className="sr-only">Search tokens, calls and wallets</span>
-          <input
-            type="search"
-            placeholder="Search"
-            className="h-9 w-full rounded-lg border border-primary/[0.06] bg-card pr-3 pl-9 text-sm text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-          />
-        </label>
-      </div>
 
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3">
         {NAV_ITEMS.map((item) => {
@@ -90,7 +83,7 @@ export function SideNav({ queued }: { queued: number }) {
           <span className="tnum">{queued} in the queue</span>
         </Link>
 
-        <ConnectWallet className="flex w-full justify-center" />
+        <AccountRow account={account} />
 
         <Link
           href="/launch"
@@ -107,7 +100,7 @@ export function SideNav({ queued }: { queued: number }) {
  * Under the nav breakpoint the column folds into a slim bar, and the same
  * sections open as a sheet from the left, the side the nav lives on
  */
-export function MobileNav() {
+export function MobileNav({ account }: { account: string | null }) {
   const pathname = usePathname();
   const isActive = useIsActive();
   const [open, setOpen] = useState(false);
@@ -208,10 +201,48 @@ export function MobileNav() {
               })}
             </div>
 
-            <ConnectWallet className="mt-auto flex w-full justify-center" />
+            <div className="mt-auto">
+              <AccountRow account={account} />
+            </div>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Signed in or not, in one small block. The wallet button moved to the launch
+ * form, which is the only place a signature is needed
+ */
+function AccountRow({ account }: { account: string | null }) {
+  if (!account) {
+    return (
+      <Link
+        href="/signin"
+        className="flex h-10 items-center justify-center rounded-full border text-sm font-bold text-primary transition-colors hover:bg-card"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-primary/[0.06] bg-card px-3 py-2">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand/15">
+        <CheckIcon className="size-3.5 text-brand" />
+      </span>
+      <span className="tnum min-w-0 truncate text-xs text-primary">
+        {account}
+      </span>
+      <form action="/api/auth/signout" method="post" className="ml-auto">
+        <button
+          type="submit"
+          className="text-xs text-secondary transition-colors hover:text-primary"
+        >
+          Out
+        </button>
+      </form>
+    </div>
   );
 }

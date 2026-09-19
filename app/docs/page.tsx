@@ -1,5 +1,16 @@
 import type { Metadata } from "next";
+import { Card } from "@/components/ui/primitives";
 import { ACCOUNT_LAYOUT } from "@/lib/data";
+
+/** The path a launch takes, each node is one instruction in the program */
+const FLOW = [
+  { x: 60, label: "Launch", sub: "mint deployed here" },
+  { x: 230, label: "Trading", sub: "creator fees build up" },
+  { x: 400, label: "Claim", sub: "fees pulled on chain" },
+  { x: 570, label: "Consent", sub: "number confirms once" },
+  { x: 740, label: "Call", sub: "voice or operator" },
+  { x: 910, label: "Payout", sub: "dollars on the phone" },
+];
 
 export const metadata: Metadata = { title: "Docs" };
 
@@ -94,6 +105,76 @@ export default function DocsPage() {
             </div>
           </article>
         ))}
+
+        <article className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold text-primary">
+            Where the money goes
+          </h2>
+          <p className="max-w-[68ch] text-sm text-secondary">
+            Nothing moves until the number confirms and the call goes through
+          </p>
+          <Card sheen className="overflow-x-auto p-5">
+            <svg
+              viewBox="0 0 990 160"
+              className="h-40 w-full min-w-[900px]"
+              role="img"
+              aria-label="Launch, trading, claim, consent, call, payout"
+            >
+              {FLOW.slice(0, -1).map((n, i) => (
+                <line
+                  key={i}
+                  x1={n.x + 28}
+                  y1={62}
+                  x2={FLOW[i + 1].x - 28}
+                  y2={62}
+                  className="animate-dash motion-reduce:animate-none"
+                  stroke="hsl(var(--primary) / 0.28)"
+                  strokeWidth="1.5"
+                  style={{ animationDelay: `${i * 160}ms` }}
+                />
+              ))}
+
+              {FLOW.map((n, i) => (
+                <g key={n.label}>
+                  <circle
+                    cx={n.x}
+                    cy={62}
+                    r={26}
+                    fill="hsl(var(--background))"
+                    stroke="hsl(var(--primary) / 0.16)"
+                  />
+                  <circle
+                    cx={n.x}
+                    cy={62}
+                    r={6}
+                    fill="hsl(var(--brand))"
+                    className="animate-breathe motion-reduce:animate-none"
+                    style={{ animationDelay: `${i * 240}ms` }}
+                  />
+                  <text
+                    x={n.x}
+                    y={108}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="700"
+                    fill="hsl(var(--primary))"
+                  >
+                    {n.label}
+                  </text>
+                  <text
+                    x={n.x}
+                    y={126}
+                    textAnchor="middle"
+                    fontSize="10"
+                    fill="hsl(var(--secondary))"
+                  >
+                    {n.sub}
+                  </text>
+                </g>
+              ))}
+            </svg>
+          </Card>
+        </article>
 
         <article className="flex flex-col gap-3">
           <h2 className="text-lg font-bold text-primary">Token account</h2>

@@ -35,19 +35,21 @@ Production build is `npm run build`, serve it with `npm start`.
 ## Routes
 
 ```
-/                 hero, live counters, bento of five product tiles
+/                 hero, live counters, bento of product tiles
 /launch           deploy a token and point its fees at a number
 /tokens           everything launched here, fees and recipients
 /queue            call queue with live position
+/payouts          payouts, receipts and the protocol totals
 /token/[id]       one token: fees, lifecycle, calls, on chain data
-/payouts          payouts and receipts
-/analytics        totals by timeframe
-/flow             where the money goes, step by step
-/docs             how the whole thing works
+/signin           sign in with a phone number, code over WhatsApp or SMS
+/docs             how it works, including the money flow diagram
 /opt-out          give or revoke consent for a number
 /u/[handle]       launcher profile with confirmed numbers
 /admin            pin the counters shown on the site
 /legal/*          terms and privacy
+
+Only five of these are in the navigation: home, launch, tokens, calls, payouts.
+The rest are reached from the footer, from a card, or from a link in a call.
 ```
 
 ## Counters
@@ -93,6 +95,21 @@ animation off never shows a wrong number.
 Only a salted hash of a phone number goes on chain. The mapping lives off chain
 and is handed to whoever places the call, for the length of that call. Revoking
 consent removes the number from every future call.
+
+## Signing in
+
+A phone number is the account. `/signin` sends a one time code over WhatsApp,
+or SMS if the visitor picks that, and the session is a signed cookie holding a
+salted hash of the number plus a masked copy for display. The raw number is
+never in the cookie.
+
+Delivery goes through Twilio Verify: one API for both channels, with Meta
+approved authentication templates included, so no template review is needed.
+Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_VERIFY_SERVICE_SID`
+to switch it on. With those unset the flow runs on a local stub that accepts
+`000000`, so the whole path can be walked before an account exists.
+
+`lib/auth/verify.ts` is the only file that knows about the provider.
 
 ## Status
 

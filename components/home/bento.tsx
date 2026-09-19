@@ -4,7 +4,6 @@ import {
   ArrowRightIcon,
   CheckIcon,
   CreateIcon,
-  DocsIcon,
   PayoutIcon,
   PhoneIcon,
   QueueIcon,
@@ -15,7 +14,6 @@ import { Waveform } from "@/components/ui/waveform";
 import { RollingNumber } from "@/components/ui/rolling-number";
 import { Card } from "@/components/ui/primitives";
 import {
-  ACCOUNT_LAYOUT,
   CALLS,
   PAYOUTS,
   TOKENS,
@@ -381,62 +379,6 @@ export function CallsTile() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 5. Docs                                                             */
-/* ------------------------------------------------------------------ */
-
-export function DocsTile() {
-  return (
-    <BentoCard
-      href="/docs"
-      label="Docs"
-      hint="One account per launched token"
-      row={2}
-      icon={DocsIcon}
-      className="sm:col-span-6 lg:col-span-12 lg:h-[200px]"
-    >
-      {/* wide strip, so the copy and the byte table sit side by side */}
-      <div className="absolute inset-0 grid gap-4 px-4 pb-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold tracking-wider text-secondary">
-            TOKEN ACCOUNT
-          </span>
-          <p className="text-xs leading-snug text-primary">
-            The mint, the creator and the hashed number sit in one account, so
-            fees can only ever go where the launch pointed them
-          </p>
-        </div>
-
-        <div className="overflow-hidden rounded-lg border border-primary/[0.06] bg-background/70 font-mono">
-          <div className="grid grid-cols-4 gap-2 border-b border-primary/[0.06] px-2.5 py-1 text-[9px] text-secondary">
-            {ACCOUNT_LAYOUT.slice(0, 4).map((row) => (
-              <span key={row.off} className="tnum">
-                {row.off}
-                <span className="text-primary/40"> +{row.len}</span>
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-4 gap-2 px-2.5 py-2 text-[10px] text-primary/80">
-            {ACCOUNT_LAYOUT.slice(0, 4).map((row) => (
-              <span key={row.off} className="truncate">
-                {row.field}
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-4 gap-2 border-t border-primary/[0.06] px-2.5 py-2 text-[10px] text-primary/80">
-            {ACCOUNT_LAYOUT.slice(4, 8).map((row) => (
-              <span key={row.off} className="truncate">
-                {row.field}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className={FADE} />
-    </BentoCard>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Grid                                                                */
 /* ------------------------------------------------------------------ */
 
@@ -451,7 +393,6 @@ export function HomeBento() {
           <PayoutsTile />
           <TokensTile />
           <CallsTile />
-          <DocsTile />
         </div>
       </section>
     </div>
