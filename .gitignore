@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# anchor
+program/target
+program/.anchor
+program/node_modules
+program/test-ledger

@@ -8,6 +8,7 @@ import {
 } from "@solana/web3.js";
 import bs58 from "bs58";
 import { connect } from "@/lib/solana/read";
+import "server-only";
 
 /**
  * The wallet that deploys mints and therefore collects their creator fees

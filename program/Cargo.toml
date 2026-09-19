@@ -1,0 +1,9 @@
+[workspace]
+members = ["programs/*"]
+resolver = "2"
+
+[profile.release]
+# a fee vault must never wrap an amount silently, so keep the checks in release
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
