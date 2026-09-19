@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero, StaleNotice } from "@/components/shell/page-hero";
-import { Card, CallChip, Field } from "@/components/ui/primitives";
+import { Card, CallChip, EmptyState, Field } from "@/components/ui/primitives";
 import { TokenMark } from "@/components/ui/token-mark";
 import { Waveform } from "@/components/ui/waveform";
 import { PhoneIcon, WhatsAppIcon } from "@/components/icons";
@@ -41,11 +41,6 @@ export default function QueuePage() {
             label="On the line"
             value={num(stats.callsLive)}
             accent="dialing"
-          />
-          <Field
-            label="Answer rate"
-            value={`${stats.answerRatePct}%`}
-            accent="brand"
           />
           <Field
             label="Tokens routing fees"
@@ -104,6 +99,12 @@ export default function QueuePage() {
       <section className="mx-auto grid w-full gap-3 px-4 pt-4 pb-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:px-6 xl:max-w-7xl">
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-primary">Next up</h2>
+          {waiting.length === 0 && (
+            <EmptyState
+              title="The queue is empty"
+              description="Calls appear here the moment a token launched through Fornum has fees to deliver"
+            />
+          )}
           {waiting.map((c, i) => {
             const token = getToken(c.tokenId);
             return (
@@ -139,6 +140,9 @@ export default function QueuePage() {
 
         <Card className="animate-section-in flex h-fit flex-col gap-3 p-5">
           <span className="text-sm font-bold text-primary">Recent calls</span>
+          {done.length === 0 && (
+            <span className="text-xs text-secondary">No calls yet</span>
+          )}
           {done.map((c, i) => {
             const token = getToken(c.tokenId);
             return (

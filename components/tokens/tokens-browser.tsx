@@ -82,8 +82,14 @@ export function TokensBrowser() {
 
       {items.length === 0 ? (
         <EmptyState
-          title="Nothing matches"
-          description="Try another ticker or clear the filters, the list updates as new tokens launch"
+          title={
+            TOKENS.length === 0 ? "Nothing launched yet" : "Nothing matches"
+          }
+          description={
+            TOKENS.length === 0
+              ? "The first token deployed through Fornum shows up here, with the number its fees point at"
+              : "Try another ticker or clear the filters, the list updates as new tokens launch"
+          }
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -69,7 +69,7 @@ export function PhoneThread({ number }: { number: string }) {
                   <PhoneIcon className="size-3.5 text-brand" />
                 </span>
                 <span className="text-[11px] text-white/80">
-                  Fornum calling, $3,210 in fees
+                  Fornum calling about your fees
                 </span>
               </div>
               <Waveform className="h-5" bars={24} />

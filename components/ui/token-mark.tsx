@@ -47,9 +47,19 @@ export function TokenMark({
   if (image) {
     return (
       <span
-        className={cn("relative block shrink-0 overflow-hidden", radius, className)}
+        className={cn(
+          "relative block shrink-0 overflow-hidden",
+          radius,
+          className,
+        )}
       >
-        <Image src={image} alt={symbol} fill sizes="96px" className="object-cover" />
+        <Image
+          src={image}
+          alt={symbol}
+          fill
+          sizes="96px"
+          className="object-cover"
+        />
       </span>
     );
   }
@@ -58,7 +68,10 @@ export function TokenMark({
   const hue = h % 360;
   const hue2 = (hue + 42 + (h % 30)) % 360;
   const angle = 110 + (h % 120);
-  const letters = symbol.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
+  const letters = symbol
+    .replace(/[^A-Za-z0-9]/g, "")
+    .slice(0, 2)
+    .toUpperCase();
   // three variants keep a wall of marks from looking like one repeated tile
   const variant = h % 3;
 

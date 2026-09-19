@@ -77,7 +77,9 @@ export function SignInForm({ configured }: { configured: boolean }) {
         <span className="flex size-14 items-center justify-center rounded-full bg-brand/15">
           <CheckIcon className="size-7 text-brand" />
         </span>
-        <span className="text-lg font-bold text-primary">You are signed in</span>
+        <span className="text-lg font-bold text-primary">
+          You are signed in
+        </span>
         <p className="tnum max-w-[44ch] text-sm text-secondary">
           {masked} is confirmed. Fees pointed at this number can be delivered,
           and you can stop calls to it at any time

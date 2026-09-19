@@ -6,12 +6,13 @@ export type Overrides = {
   tokensLaunched: number | null;
   feesClaimedUsd: number | null;
   paidOutUsd: number | null;
-  answerRatePct: number | null;
 };
 
 export type SiteConfig = {
   overrides: Overrides;
   banner: { enabled: boolean; text: string };
+  /** sample rows instead of the live set, for screenshots and walkthroughs */
+  demoData: boolean;
   /** the number every launch and every payout goes through */
   whatsapp: { display: string; e164: string };
 };
@@ -22,7 +23,6 @@ const EMPTY: Overrides = {
   tokensLaunched: null,
   feesClaimedUsd: null,
   paidOutUsd: null,
-  answerRatePct: null,
 };
 
 /**
@@ -54,6 +54,7 @@ export const siteConfig: SiteConfig = {
     enabled: fileConfig.banner?.enabled ?? false,
     text: fileConfig.banner?.text ?? "",
   },
+  demoData: fileConfig.demoData ?? false,
   whatsapp: {
     display: fileConfig.whatsapp?.display ?? "+1 (415) 555-0142",
     e164: fileConfig.whatsapp?.e164 ?? "14155550142",

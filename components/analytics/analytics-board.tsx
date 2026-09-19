@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/primitives";
+import { Card, EmptyState } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/segmented";
 import { RollingNumber } from "@/components/ui/rolling-number";
 import type { Stats } from "@/lib/data";
@@ -53,7 +53,17 @@ export function AnalyticsBoard({ stats }: { stats: Stats }) {
 
   const claimed = scaled(stats.feesClaimedUsd, f.share);
   const paid = scaled(stats.paidOutUsd, f.share);
-  const launched = Math.max(1, scaled(stats.tokensLaunched, f.share));
+  const launched = scaled(stats.tokensLaunched, f.share);
+
+  // nothing has happened yet, so there is nothing to chart
+  if (stats.feesClaimedUsd === 0 && stats.tokensLaunched === 0) {
+    return (
+      <EmptyState
+        title="No protocol activity yet"
+        description="Totals appear here once tokens launched through Fornum start earning creator fees"
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -112,9 +122,9 @@ export function AnalyticsBoard({ stats }: { stats: Stats }) {
           bars={f.bars}
         />
         <ChartCard
-          key={`answer-${frame}`}
-          title="Answer rate"
-          value={`${stats.answerRatePct}%`}
+          key={`paid-chart-${frame}`}
+          title="Paid to numbers"
+          value={`$${paid.toLocaleString("en-US")}`}
           caption={f.caption}
           bars={[...f.bars].reverse()}
           accent

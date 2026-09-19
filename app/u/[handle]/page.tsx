@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, TokenChip } from "@/components/ui/primitives";
 import { TokenMark, WalletMark, seedHue } from "@/components/ui/token-mark";
 import { CheckIcon, WhatsAppIcon } from "@/components/icons";
+import { notFound } from "next/navigation";
 import { PROFILES, TOKENS, getProfile, num, usd } from "@/lib/data";
 import { cn } from "@/lib/cn";
 
@@ -14,7 +15,7 @@ export async function generateMetadata({
   params,
 }: PageProps<"/u/[handle]">): Promise<Metadata> {
   const { handle } = await params;
-  return { title: getProfile(handle).name };
+  return { title: getProfile(handle)?.name ?? "Profile" };
 }
 
 export default async function ProfilePage({
@@ -22,6 +23,8 @@ export default async function ProfilePage({
 }: PageProps<"/u/[handle]">) {
   const { handle } = await params;
   const p = getProfile(handle);
+  if (!p) notFound();
+
   const hue = seedHue(p.wallet);
   const launched = TOKENS.slice(0, 5);
   const earned = launched.reduce((sum, t) => sum + t.feesPaid, 0);

@@ -9,7 +9,12 @@ import { cn } from "@/lib/cn";
 
 type Key = keyof Overrides;
 
-const FIELDS: { key: Key; label: string; hint: string; statKey: keyof Stats }[] = [
+const FIELDS: {
+  key: Key;
+  label: string;
+  hint: string;
+  statKey: keyof Stats;
+}[] = [
   {
     key: "callsInQueue",
     label: "Calls in queue",
@@ -39,12 +44,6 @@ const FIELDS: { key: Key; label: string; hint: string; statKey: keyof Stats }[] 
     label: "Paid to numbers, USD",
     hint: "Big number on the payouts page",
     statKey: "paidOutUsd",
-  },
-  {
-    key: "answerRatePct",
-    label: "Answer rate, percent",
-    hint: "Share of calls that were picked up",
-    statKey: "answerRatePct",
   },
 ];
 
@@ -94,8 +93,8 @@ export function StatsControls({
             Pin a number
           </h2>
           <p className="text-sm text-secondary">
-            Leave a field empty and the site shows the real figure from activity.
-            Type a value and that value is shown instead
+            Leave a field empty and the site shows the real figure from
+            activity. Type a value and that value is shown instead
           </p>
         </div>
 

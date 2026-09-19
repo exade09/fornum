@@ -60,11 +60,12 @@ export function CallChip({
   );
 }
 
-const TOKEN_STATUS: Record<TokenStatus, { label: string; className: string }> = {
-  live: { label: "Live", className: "bg-brand/15 text-brand" },
-  graduated: { label: "Graduated", className: "bg-dialing/15 text-dialing" },
-  pending: { label: "Fees waiting", className: "bg-queued/15 text-queued" },
-};
+const TOKEN_STATUS: Record<TokenStatus, { label: string; className: string }> =
+  {
+    live: { label: "Live", className: "bg-brand/15 text-brand" },
+    graduated: { label: "Graduated", className: "bg-dialing/15 text-dialing" },
+    pending: { label: "Fees waiting", className: "bg-queued/15 text-queued" },
+  };
 
 export function TokenChip({
   status,

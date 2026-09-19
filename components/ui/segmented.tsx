@@ -39,7 +39,9 @@ export function Segmented<T extends string>({
         "relative grid w-fit rounded-full bg-background/70 p-1",
         className,
       )}
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      style={{
+        gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
+      }}
     >
       <span
         aria-hidden="true"

@@ -22,7 +22,9 @@ export default function PayoutsPage() {
         description="Creator fees from tokens launched here, claimed on chain and sent to the number the launch pointed at"
       />
       <StaleNotice>
-        Balances as of the last claim, refreshed every minute
+        {stats.paidOutUsd > 0
+          ? "Balances as of the last claim, refreshed every minute"
+          : "No fees have been claimed yet, so there is nothing to pay out"}
       </StaleNotice>
 
       <section className="mx-auto grid w-full gap-3 px-4 pt-6 pb-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-6 xl:max-w-7xl">
@@ -68,6 +70,11 @@ export default function PayoutsPage() {
           style={{ animationDelay: "80ms" }}
         >
           <span className="text-sm font-bold text-primary">Top earners</span>
+          {top.length === 0 && (
+            <span className="text-xs text-secondary">
+              No payouts yet, the first one appears here
+            </span>
+          )}
           {top.map((t, i) => (
             <Link
               key={t.id}

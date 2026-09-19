@@ -44,8 +44,14 @@ export function PayoutsBrowser() {
 
       {items.length === 0 ? (
         <EmptyState
-          title="No payouts that size yet"
-          description="Lower the threshold, the list fills as fees are claimed and sent"
+          title={
+            PAYOUTS.length === 0 ? "No payouts yet" : "No payouts that size"
+          }
+          description={
+            PAYOUTS.length === 0
+              ? "Every payout leaves a receipt here once the first fees are claimed and delivered"
+              : "Lower the threshold, the list fills as fees are claimed and sent"
+          }
         />
       ) : (
         <div className="flex flex-col gap-2">

@@ -42,9 +42,7 @@ export default async function SignInPage() {
         )}
 
         <Card className="animate-section-in flex h-fit flex-col gap-2 p-5 text-xs text-secondary">
-          <span className="text-sm font-bold text-primary">
-            What we keep
-          </span>
+          <span className="text-sm font-bold text-primary">What we keep</span>
           <p>
             The session holds a salted hash of the number and a masked copy for
             display. The number itself is not stored in the cookie

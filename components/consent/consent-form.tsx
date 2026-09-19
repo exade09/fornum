@@ -130,8 +130,8 @@ export function ConsentForm() {
           What we do with the number
         </span>
         <p>
-          Only a salted hash of it goes on chain. The mapping lives off chain and
-          is handed to whoever places the call, for the length of that call
+          Only a salted hash of it goes on chain. The mapping lives off chain
+          and is handed to whoever places the call, for the length of that call
         </p>
         <p>
           A number without active consent is never dialed, even when fees are

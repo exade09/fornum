@@ -3,12 +3,15 @@ import { ArrowRightIcon, PhoneIcon } from "@/components/icons";
 import { RollingNumber } from "@/components/ui/rolling-number";
 import { Card } from "@/components/ui/primitives";
 import { getStats, num, usd } from "@/lib/data";
+import { cn } from "@/lib/cn";
 
 /** Live state of the queue, the one thing worth interrupting the hero for */
 export function LiveCallBadge() {
   const stats = getStats();
-  const label =
-    stats.callsLive > 0
+  const idle = stats.callsLive === 0 && stats.callsInQueue === 0;
+  const label = idle
+    ? "The line is open, nothing in the queue yet"
+    : stats.callsLive > 0
       ? `${num(stats.callsLive)} ${stats.callsLive === 1 ? "call" : "calls"} on the line, ${num(stats.callsInQueue)} waiting`
       : `${num(stats.callsInQueue)} ${stats.callsInQueue === 1 ? "call" : "calls"} in the queue`;
 
@@ -18,8 +21,15 @@ export function LiveCallBadge() {
       className="group relative inline-flex items-center gap-2 rounded-full border border-primary/[0.08] bg-card px-3 py-1.5 text-xs text-secondary transition-colors hover:border-primary/20 hover:text-primary"
     >
       <span className="relative flex size-2 items-center justify-center">
-        <span className="animate-ring-pulse motion-reduce:animate-none absolute size-2 rounded-full bg-brand" />
-        <span className="size-2 rounded-full bg-brand" />
+        {!idle && (
+          <span className="animate-ring-pulse motion-reduce:animate-none absolute size-2 rounded-full bg-brand" />
+        )}
+        <span
+          className={cn(
+            "size-2 rounded-full",
+            idle ? "bg-secondary" : "bg-brand",
+          )}
+        />
       </span>
       <PhoneIcon className="size-3.5 text-brand" />
       <span className="tnum">{label}</span>
@@ -49,14 +59,13 @@ export function HeroStats() {
       value: usd(stats.paidOutUsd, 0).slice(1),
       prefix: "$",
     },
-    { label: "Answer rate", value: `${stats.answerRatePct}`, suffix: "%" },
   ];
 
   return (
     /* one banded strip with dividers, rather than four separate cards */
     <Card
       sheen
-      className="animate-section-in grid grid-cols-2 divide-primary/[0.06] sm:grid-cols-4 sm:divide-x"
+      className="animate-section-in grid grid-cols-1 divide-primary/[0.06] sm:grid-cols-3 sm:divide-x"
     >
       {items.map((s, i) => (
         <div
