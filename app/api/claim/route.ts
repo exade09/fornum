@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { readSession } from "@/lib/auth/session";
-import { getToken, recordClaim, setAccrued } from "@/lib/db/store";
-import { balanceOf, isValidAddress, payOut } from "@/lib/solana/wallet";
+import { getToken, recordClaim } from "@/lib/db/store";
+import {
+  balanceOf,
+  isValidAddress,
+  payOut,
+  sendableFrom,
+} from "@/lib/solana/wallet";
 import { claimableLamports, feeRecipientHash } from "@/lib/types";
 
 /**
@@ -42,25 +47,30 @@ export async function POST(request: Request) {
     );
   }
 
-  // the wallet is the source of truth for what is actually there, the stored
-  // total is only what we believe has accrued
-  let accrued = token.feesAccruedLamports;
-  try {
-    const onChain = await balanceOf(token.launchWallet);
-    if (Number.isFinite(onChain)) {
-      accrued = Math.max(accrued, onChain);
-      if (onChain !== token.feesAccruedLamports) {
-        await setAccrued(token.id, accrued);
-      }
-    }
-  } catch {
-    // reading the chain failed, fall back to what we stored
-  }
-
-  const amount = claimableLamports({ ...token, feesAccruedLamports: accrued });
-  if (amount <= 0) {
+  // what this token is owed, from what we recorded for it
+  const owed = claimableLamports(token);
+  if (owed <= 0) {
     return Response.json({ error: "Nothing to claim" }, { status: 400 });
   }
+
+  // one wallet holds the fees of every token, so the owed amount is also capped
+  // by what the wallet can actually part with
+  let sendable = owed;
+  try {
+    const balance = await balanceOf(token.launchWallet);
+    sendable = Math.min(owed, sendableFrom(balance));
+  } catch {
+    // reading the chain failed, let payOut do its own balance check
+  }
+
+  if (sendable <= 0) {
+    return Response.json(
+      { error: "The launch wallet has not been topped up for this yet" },
+      { status: 409 },
+    );
+  }
+
+  const amount = sendable;
 
   const sent = await payOut(wallet.trim(), amount);
   if (!sent.ok) {

@@ -22,6 +22,20 @@ export const LAMPORTS = LAMPORTS_PER_SOL;
 /** Left behind so the account stays rent exempt and can keep paying fees */
 export const RESERVE_LAMPORTS = 2_000_000;
 
+/** Headroom for the transfer fee itself */
+export const FEE_LAMPORTS = 10_000;
+
+/**
+ * The most that can leave the wallet right now
+ *
+ * A claim asks for what a token earned, but the wallet also has to survive the
+ * transaction and stay rent exempt, so the amount is capped here rather than
+ * failing at send time with an unhelpful error
+ */
+export function sendableFrom(balance: number) {
+  return Math.max(balance - RESERVE_LAMPORTS - FEE_LAMPORTS, 0);
+}
+
 export function launchKeypair(): Keypair | null {
   const secret = process.env.LAUNCH_WALLET_SECRET;
   if (!secret) return null;
