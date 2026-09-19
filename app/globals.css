@@ -784,3 +784,19 @@
   stroke-dasharray: 5 6;
   animation: 1.6s linear infinite dashMove;
 }
+
+/* Sheet entering from the left, matching the side the nav sits on. */
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-slide-in-left {
+  animation: 0.4s var(--ease-decel) both slideInLeft;
+}

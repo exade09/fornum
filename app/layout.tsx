@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { TopNav } from "@/components/shell/top-nav";
+import { MobileNav, SideNav } from "@/components/shell/side-nav";
 import { SiteFooter } from "@/components/shell/footer";
+import { getStats } from "@/lib/data";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,13 +30,15 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  const stats = getStats();
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-100 focus:rounded-full focus:bg-background focus:px-4 focus:py-2 focus:text-sm"
@@ -43,13 +46,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
 
-        <TopNav />
+        <SideNav queued={stats.callsInQueue} />
 
-        <main id="main" className="relative flex-1">
-          {children}
-        </main>
-
-        <SiteFooter />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <MobileNav />
+          <main id="main" className="relative flex-1">
+            {children}
+          </main>
+          <SiteFooter />
+        </div>
       </body>
     </html>
   );
