@@ -3,13 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  CloseIcon,
-  FornumMark,
-  MenuIcon,
-  PhoneIcon,
-  SearchIcon,
-} from "@/components/icons";
+import { CloseIcon, MenuIcon, PhoneIcon, SearchIcon } from "@/components/icons";
+import { Brand } from "@/components/shell/brand";
 import { ConnectWallet } from "@/components/wallet/connect-wallet";
 import { NAV_ITEMS } from "@/lib/nav";
 import { cn } from "@/lib/cn";
@@ -35,7 +30,10 @@ export function SideNav({ queued }: { queued: number }) {
         className="group flex h-[68px] shrink-0 items-center gap-2.5 px-5 text-primary"
         aria-label="Fornum home"
       >
-        <FornumMark className="size-7 transition-transform group-hover:-rotate-6" />
+        <Brand
+          size={28}
+          className="transition-transform group-hover:-rotate-3"
+        />
         <span className="text-base font-bold tracking-tight">Fornum</span>
       </Link>
 
@@ -137,7 +135,7 @@ export function MobileNav() {
           className="flex items-center gap-2 text-primary"
           aria-label="Fornum home"
         >
-          <FornumMark className="size-6" />
+          <Brand size={24} />
           <span className="text-sm font-bold tracking-tight">Fornum</span>
         </Link>
 
@@ -170,7 +168,7 @@ export function MobileNav() {
           <div className="animate-slide-in-left absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col border-r bg-background px-4 pt-4 pb-5">
             <div className="flex h-10 shrink-0 items-center justify-between">
               <span className="flex items-center gap-2 text-primary">
-                <FornumMark className="size-6" />
+                <Brand size={24} />
                 <span className="text-sm font-bold tracking-tight">Fornum</span>
               </span>
               <button

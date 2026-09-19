@@ -162,19 +162,3 @@ export function WhatsAppIcon(props: IconProps) {
     </svg>
   );
 }
-
-/** Fornum mark: an F built out of a handset */
-export function FornumMark(props: IconProps) {
-  return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M10 26V8a2 2 0 0 1 2-2h10"
-        stroke="currentColor"
-        strokeWidth={3}
-        strokeLinecap="round"
-      />
-      <path d="M10 15h8" stroke="currentColor" strokeWidth={3} strokeLinecap="round" />
-      <circle cx="21.5" cy="22.5" r="3.5" fill="currentColor" />
-    </svg>
-  );
-}

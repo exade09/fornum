@@ -17,15 +17,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Fornum, launch a token and get its fees by phone",
+    default: "Fornum",
     template: "%s — Fornum",
   },
   description:
     "Fornum deploys your token on Solana and routes its creator fees to one confirmed WhatsApp number. We claim, call and pay out in dollars",
   openGraph: {
     siteName: "Fornum",
+    title: "Fornum",
     type: "website",
     locale: "en_US",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Fornum" }],
   },
 };
 
