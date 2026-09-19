@@ -115,6 +115,15 @@ export function ChevronLeftIcon(props: IconProps) {
   );
 }
 
+/** Doubled chevron, the one the sidebar collapse button carries */
+export function ChevronsLeftIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m11 5-6 7 6 7M18 5l-6 7 6 7" />
+    </Icon>
+  );
+}
+
 export function ChevronRightIcon(props: IconProps) {
   return (
     <Icon {...props}>
