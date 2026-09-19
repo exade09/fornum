@@ -5,6 +5,7 @@ import { LaunchRecorder } from "@/components/admin/launch-recorder";
 import { Card } from "@/components/ui/primitives";
 import { siteConfig } from "@/lib/config";
 import { hasDatabase } from "@/lib/db/client";
+import { dbError } from "@/lib/db/store";
 import { getStats, sol } from "@/lib/data";
 import { balanceOf, launchWalletAddress } from "@/lib/solana/wallet";
 
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 
 export default async function AdminPage() {
   const stats = await getStats();
+  const dbFault = dbError();
   const wallet = launchWalletAddress();
 
   let balance: number | null = null;
@@ -40,8 +42,14 @@ export default async function AdminPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Row
               label="Database"
-              value={hasDatabase ? "connected" : "in memory, not persisted"}
-              ok={hasDatabase}
+              value={
+                !hasDatabase
+                  ? "in memory, not persisted"
+                  : dbFault
+                    ? dbFault
+                    : "connected"
+              }
+              ok={hasDatabase && !dbFault}
             />
             <Row
               label="Demo rows"

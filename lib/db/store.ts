@@ -12,6 +12,32 @@ import type { Claim, LaunchRequest, Token } from "@/lib/types";
  * survive a restart, which is the point: it is not a database
  */
 
+/**
+ * Reads must not take the site down
+ *
+ * A missing table or an unreachable database is an operator problem, not a
+ * reason for every visitor to see a crash. Reads fall back to empty and record
+ * why, which /admin shows. Writes still throw: a claim that failed must never
+ * look like it worked
+ */
+let lastReadError: string | null = null;
+
+export function dbError() {
+  return lastReadError;
+}
+
+async function safeRead<T>(what: string, run: () => Promise<T>, fallback: T) {
+  try {
+    const value = await run();
+    lastReadError = null;
+    return value;
+  } catch (err) {
+    lastReadError = `${what}: ${err instanceof Error ? err.message : String(err)}`;
+    console.error("[db]", lastReadError);
+    return fallback;
+  }
+}
+
 const mem = {
   tokens: [] as Token[],
   claims: [] as Claim[],
@@ -99,10 +125,16 @@ export async function listTokens(): Promise<Token[]> {
     seed();
     return mem.tokens;
   }
-  const rows = await sql<TokenRow[]>`
-    select * from tokens order by created_at desc
-  `;
-  return rows.map(toToken);
+  return safeRead(
+    "listTokens",
+    async () => {
+      const rows = await sql!<TokenRow[]>`
+        select * from tokens order by created_at desc
+      `;
+      return rows.map(toToken);
+    },
+    [],
+  );
 }
 
 export async function getToken(id: string): Promise<Token | null> {
@@ -110,10 +142,16 @@ export async function getToken(id: string): Promise<Token | null> {
     seed();
     return mem.tokens.find((t) => t.id === id) ?? null;
   }
-  const rows = await sql<TokenRow[]>`
-    select * from tokens where id = ${id} limit 1
-  `;
-  return rows[0] ? toToken(rows[0]) : null;
+  return safeRead(
+    "getToken",
+    async () => {
+      const rows = await sql!<TokenRow[]>`
+        select * from tokens where id = ${id} limit 1
+      `;
+      return rows[0] ? toToken(rows[0]) : null;
+    },
+    null,
+  );
 }
 
 export async function createToken(
@@ -192,10 +230,16 @@ export async function listClaims(limit = 50): Promise<Claim[]> {
     seed();
     return mem.claims.slice(0, limit);
   }
-  const rows = await sql<ClaimRow[]>`
-    select * from claims order by created_at desc limit ${limit}
-  `;
-  return rows.map(toClaim);
+  return safeRead(
+    "listClaims",
+    async () => {
+      const rows = await sql!<ClaimRow[]>`
+        select * from claims order by created_at desc limit ${limit}
+      `;
+      return rows.map(toClaim);
+    },
+    [],
+  );
 }
 
 export async function claimsForToken(tokenId: string): Promise<Claim[]> {
@@ -203,10 +247,16 @@ export async function claimsForToken(tokenId: string): Promise<Claim[]> {
     seed();
     return mem.claims.filter((c) => c.tokenId === tokenId);
   }
-  const rows = await sql<ClaimRow[]>`
-    select * from claims where token_id = ${tokenId} order by created_at desc
-  `;
-  return rows.map(toClaim);
+  return safeRead(
+    "claimsForToken",
+    async () => {
+      const rows = await sql!<ClaimRow[]>`
+        select * from claims where token_id = ${tokenId} order by created_at desc
+      `;
+      return rows.map(toClaim);
+    },
+    [],
+  );
 }
 
 /**
@@ -251,27 +301,33 @@ export async function listRequests(): Promise<LaunchRequest[]> {
     seed();
     return mem.requests;
   }
-  const rows = await sql<
-    {
-      id: string;
-      phone_hash: string;
-      phone_masked: string;
-      note: string | null;
-      status: string;
-      token_id: string | null;
-      created_at: Date;
-    }[]
-  >`select * from launch_requests order by created_at desc limit 100`;
+  return safeRead(
+    "listRequests",
+    async () => {
+      const rows = await sql!<
+        {
+          id: string;
+          phone_hash: string;
+          phone_masked: string;
+          note: string | null;
+          status: string;
+          token_id: string | null;
+          created_at: Date;
+        }[]
+      >`select * from launch_requests order by created_at desc limit 100`;
 
-  return rows.map((r) => ({
-    id: r.id,
-    phoneHash: r.phone_hash,
-    phoneMasked: r.phone_masked,
-    note: r.note,
-    status: r.status as LaunchRequest["status"],
-    tokenId: r.token_id,
-    createdAt: r.created_at.toISOString(),
-  }));
+      return rows.map((r) => ({
+        id: r.id,
+        phoneHash: r.phone_hash,
+        phoneMasked: r.phone_masked,
+        note: r.note,
+        status: r.status as LaunchRequest["status"],
+        tokenId: r.token_id,
+        createdAt: r.created_at.toISOString(),
+      }));
+    },
+    [],
+  );
 }
 
 export async function createRequest(
