@@ -23,8 +23,16 @@ const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
 
+/** An API key, which unlike the account token can be revoked on its own */
+const API_KEY_SID = process.env.TWILIO_API_KEY_SID;
+const API_KEY_SECRET = process.env.TWILIO_API_KEY_SECRET;
+
+const hasCredentials = Boolean(
+  (API_KEY_SID && API_KEY_SECRET) || (ACCOUNT_SID && AUTH_TOKEN),
+);
+
 export function isConfigured() {
-  return Boolean(ACCOUNT_SID && AUTH_TOKEN && SERVICE_SID);
+  return Boolean(hasCredentials && SERVICE_SID);
 }
 
 /** Digits only, with a leading plus. Anything else is not a number we can dial */
@@ -40,8 +48,19 @@ export function maskPhone(phone: string) {
   return `${head} ••• ${tail}`;
 }
 
+/**
+ * Prefer the API key when one is set
+ *
+ * Both authenticate the same way, but a key can be revoked without taking the
+ * rest of the account with it, so the account token is only the fallback for
+ * before a key exists
+ */
 function twilioAuthHeader() {
-  return `Basic ${Buffer.from(`${ACCOUNT_SID}:${AUTH_TOKEN}`).toString("base64")}`;
+  const [user, secret] =
+    API_KEY_SID && API_KEY_SECRET
+      ? [API_KEY_SID, API_KEY_SECRET]
+      : [ACCOUNT_SID, AUTH_TOKEN];
+  return `Basic ${Buffer.from(`${user}:${secret}`).toString("base64")}`;
 }
 
 export async function startVerification(
