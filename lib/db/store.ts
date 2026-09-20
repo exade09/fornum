@@ -69,8 +69,9 @@ type TokenRow = {
   assignee_hash: string | null;
   assignee_masked: string | null;
   launch_wallet: string;
-  wallet_index: number | null;
-  baseline_lamports: string;
+  // absent until the migration has run
+  wallet_index?: number | null;
+  baseline_lamports?: string | null;
   fees_accrued_lamports: string;
   fees_claimed_lamports: string;
   market_cap_usd: string;
@@ -90,8 +91,10 @@ function toToken(r: TokenRow): Token {
     assigneeHash: r.assignee_hash,
     assigneeMasked: r.assignee_masked,
     launchWallet: r.launch_wallet,
-    walletIndex: r.wallet_index,
-    baselineLamports: Number(r.baseline_lamports),
+    // both tolerate a database that has not had the migration run yet, so the
+    // order of deploy and migration cannot put NaN on a page
+    walletIndex: r.wallet_index ?? null,
+    baselineLamports: Number(r.baseline_lamports ?? 0),
     feesAccruedLamports: Number(r.fees_accrued_lamports),
     feesClaimedLamports: Number(r.fees_claimed_lamports),
     marketCapUsd: Number(r.market_cap_usd),
