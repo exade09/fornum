@@ -52,8 +52,8 @@ export const siteConfig: SiteConfig = {
   },
   demoData: fileConfig.demoData ?? false,
   whatsapp: {
-    display: fileConfig.whatsapp?.display ?? "+1 (415) 555-0142",
-    e164: fileConfig.whatsapp?.e164 ?? "14155550142",
+    display: fileConfig.whatsapp?.display ?? "+1 (605) 981-6581",
+    e164: fileConfig.whatsapp?.e164 ?? "16059816581",
   },
 };
 

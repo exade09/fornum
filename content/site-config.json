@@ -10,9 +10,9 @@
     "text": ""
   },
   "whatsapp": {
-    "display": "+1 (415) 555-0142",
-    "e164": "14155550142",
-    "_comment": "Placeholder in the reserved 555-01xx fictional range, so it cannot ring a real person. Swap both fields when the Business number is live."
+    "display": "+1 (605) 981-6581",
+    "e164": "16059816581",
+    "_comment": "The live Fornum number. display is what the site shows, e164 is what wa.me links use, digits only and no plus. Both must point at the same line."
   },
   "demoData": false
 }
