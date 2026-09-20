@@ -4,6 +4,7 @@ import { StatsControls } from "@/components/admin/stats-controls";
 import { LaunchRecorder } from "@/components/admin/launch-recorder";
 import { FeesRecorder } from "@/components/admin/fees-recorder";
 import { TokenRemover } from "@/components/admin/token-remover";
+import { launchFleet } from "@/lib/launch-fleet";
 import { Card } from "@/components/ui/primitives";
 import { siteConfig } from "@/lib/config";
 import { hasDatabase } from "@/lib/db/client";
@@ -21,6 +22,10 @@ export default async function AdminPage() {
   const dbFault = dbError();
   const tokens = await listTokens();
   const wallet = launchWalletAddress();
+
+  // state of every launch wallet: derived, balances read in one call, each one
+  // matched against what has actually been launched
+  const wallets = await launchFleet();
 
   let balance: number | null = null;
   if (wallet) {
@@ -73,7 +78,7 @@ export default async function AdminPage() {
           </div>
         </Card>
 
-        <LaunchRecorder />
+        <LaunchRecorder wallets={wallets} />
 
         <FeesRecorder tokens={tokens} />
 

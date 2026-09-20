@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/primitives";
 import { TokenMark } from "@/components/ui/token-mark";
 import { CheckIcon, WhatsAppIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { WalletPicker } from "@/components/admin/wallet-picker";
+import type { LaunchWallet } from "@/lib/launch-fleet";
 
 const KEY = "fornum:admin-token";
 
@@ -15,7 +17,11 @@ const KEY = "fornum:admin-token";
  * never stored on the server, which is the right shape for a console one person
  * uses rather than an account system
  */
-export function LaunchRecorder() {
+export function LaunchRecorder({
+  wallets,
+}: {
+  wallets: LaunchWallet[] | null;
+}) {
   const [secret, setSecret] = useState("");
   const [mint, setMint] = useState("");
   const [name, setName] = useState("");
@@ -144,17 +150,21 @@ export function LaunchRecorder() {
           />
         </div>
 
-        <Text
-          label="Launch wallet index"
-          value={walletIndex}
-          onChange={(v) => setWalletIndex(v.replace(/[^0-9]/g, ""))}
-          placeholder="the wallet you deployed from, e.g. 37"
-        />
-        <p className="-mt-2 text-xs text-secondary">
-          Its balance right now becomes the line this token's fees are measured
-          from, so record the launch before the first trades land. Leave empty
-          only for the old shared wallet
-        </p>
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-bold tracking-wider text-secondary uppercase">
+            Launched from
+          </span>
+          <WalletPicker
+            wallets={wallets}
+            selected={walletIndex}
+            onSelect={(i) => setWalletIndex(String(i))}
+          />
+          <p className="text-xs text-secondary">
+            The balance of the wallet you pick becomes the line this token's
+            fees are measured from, so record the launch before the first trades
+            land
+          </p>
+        </div>
 
         <Text
           label="Admin token"
