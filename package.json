@@ -9,7 +9,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "read": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/read-account.mts"
+    "read": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/read-account.mts",
+    "wallets": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/launch-wallets.mts",
+    "wallets:fund": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/fund-launch-wallets.mts"
   },
   "dependencies": {
     "@solana/web3.js": "^1.99.0",
@@ -25,6 +27,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "bip39": "^3.1.0",
+    "ed25519-hd-key": "^2.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

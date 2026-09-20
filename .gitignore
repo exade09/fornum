@@ -46,3 +46,6 @@ program/target
 program/.anchor
 program/node_modules
 program/test-ledger
+
+# wallet seed, the only copy of a hundred launch wallets
+secrets/
