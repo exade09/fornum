@@ -3,6 +3,7 @@ import { PageHero } from "@/components/shell/page-hero";
 import { StatsControls } from "@/components/admin/stats-controls";
 import { LaunchRecorder } from "@/components/admin/launch-recorder";
 import { FeesRecorder } from "@/components/admin/fees-recorder";
+import { TokenRemover } from "@/components/admin/token-remover";
 import { Card } from "@/components/ui/primitives";
 import { siteConfig } from "@/lib/config";
 import { hasDatabase } from "@/lib/db/client";
@@ -77,6 +78,8 @@ export default async function AdminPage() {
         <FeesRecorder tokens={tokens} />
 
         <StatsControls current={stats} overrides={siteConfig.overrides} />
+
+        <TokenRemover tokens={tokens} />
       </section>
     </>
   );

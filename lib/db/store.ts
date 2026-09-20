@@ -227,6 +227,27 @@ export async function setAccrued(id: string, lamports: number) {
   `;
 }
 
+/**
+ * Remove a token and everything recorded against it
+ *
+ * Launches get recorded wrong: a typo in the mint, the wrong number, a test
+ * row that should never have been on the public list. Claims carry an on
+ * delete cascade, so they go with it, which is the honest behaviour: a claim
+ * against a token that no longer exists is not a record of anything
+ */
+export async function deleteToken(id: string): Promise<boolean> {
+  if (!sql) {
+    seed();
+    const before = mem.tokens.length;
+    mem.tokens = mem.tokens.filter((t) => t.id !== id);
+    mem.claims = mem.claims.filter((c) => c.tokenId !== id);
+    return mem.tokens.length < before;
+  }
+
+  const rows = await sql`delete from tokens where id = ${id} returning id`;
+  return rows.length > 0;
+}
+
 /* ------------------------------------------------------------------ */
 /* Claims                                                              */
 /* ------------------------------------------------------------------ */
