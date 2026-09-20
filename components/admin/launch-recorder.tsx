@@ -22,6 +22,7 @@ export function LaunchRecorder() {
   const [symbol, setSymbol] = useState("");
   const [phone, setPhone] = useState("");
   const [feesTo, setFeesTo] = useState("");
+  const [walletIndex, setWalletIndex] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
@@ -65,6 +66,7 @@ export function LaunchRecorder() {
         symbol: symbol.trim(),
         phone,
         feesTo: feesTo.trim() || undefined,
+        walletIndex: walletIndex.trim() === "" ? undefined : Number(walletIndex),
       }),
     });
     setBusy(false);
@@ -141,6 +143,18 @@ export function LaunchRecorder() {
             placeholder="optional"
           />
         </div>
+
+        <Text
+          label="Launch wallet index"
+          value={walletIndex}
+          onChange={(v) => setWalletIndex(v.replace(/[^0-9]/g, ""))}
+          placeholder="the wallet you deployed from, e.g. 37"
+        />
+        <p className="-mt-2 text-xs text-secondary">
+          Its balance right now becomes the line this token's fees are measured
+          from, so record the launch before the first trades land. Leave empty
+          only for the old shared wallet
+        </p>
 
         <Text
           label="Admin token"

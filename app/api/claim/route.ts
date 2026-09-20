@@ -2,20 +2,28 @@ import { randomUUID } from "node:crypto";
 import { readSession } from "@/lib/auth/session";
 import { getToken, recordClaim } from "@/lib/db/store";
 import {
+  FEE_LAMPORTS,
+  RENT_EXEMPT_LAMPORTS,
   balanceOf,
   isValidAddress,
+  launchKeypair,
   payOut,
   sendableFrom,
 } from "@/lib/solana/wallet";
-import { claimableLamports, feeRecipientHash } from "@/lib/types";
+import { walletAt } from "@/lib/solana/launch-wallets";
+import {
+  claimableFromBalance,
+  claimableLamports,
+  feeRecipientHash,
+} from "@/lib/types";
 
 /**
  * Take the creator fees of one token
  *
- * Order matters: prove who is asking, work out what they are owed from stored
- * state, send the transfer, and only then write the claim. A failed transfer
- * leaves nothing behind, and the write moves the claimed total in the same
- * transaction so the same fees cannot go out twice
+ * Order matters: prove who is asking, work out what they are owed, send the
+ * transfer, and only then write the claim. A failed transfer leaves nothing
+ * behind, and the write moves the claimed total in the same transaction so the
+ * same fees cannot go out twice
  */
 export async function POST(request: Request) {
   const session = await readSession();
@@ -47,32 +55,70 @@ export async function POST(request: Request) {
     );
   }
 
-  // what this token is owed, from what we recorded for it
-  const owed = claimableLamports(token);
+  /**
+   * Which key signs for this token
+   *
+   * A token launched from its own wallet is paid out of that wallet. Older
+   * rows carry no index and still run off the single shared wallet
+   */
+  const perToken = token.walletIndex !== null && token.walletIndex !== undefined;
+  const signer = perToken ? walletAt(token.walletIndex!) : launchKeypair();
+
+  if (!signer) {
+    return Response.json(
+      { error: "Payouts are not configured on this deployment" },
+      { status: 503 },
+    );
+  }
+
+  // the key must actually be the wallet the token's fees went to, or a wrong
+  // index would quietly pay out of somebody else's token
+  if (signer.publicKey.toBase58() !== token.launchWallet) {
+    console.error(
+      `[claim] ${token.id} expects ${token.launchWallet}, derived ${signer.publicKey.toBase58()}`,
+    );
+    return Response.json(
+      { error: "This token's wallet does not match its records" },
+      { status: 500 },
+    );
+  }
+
+  let balance: number;
+  try {
+    balance = await balanceOf(token.launchWallet);
+  } catch {
+    return Response.json(
+      { error: "Could not read the wallet right now, try again" },
+      { status: 502 },
+    );
+  }
+
+  /**
+   * How much is owed
+   *
+   * With a wallet of its own, the token's fees are simply what sits above the
+   * line the wallet was funded to, so the chain is the source of truth and
+   * nobody has to record an amount. The floor never drops below rent
+   * exemption, so a claim cannot leave the wallet to be swept away
+   */
+  const owed = perToken
+    ? claimableFromBalance(
+        balance,
+        Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS),
+        FEE_LAMPORTS,
+      )
+    : Math.min(claimableLamports(token), sendableFrom(balance));
+
   if (owed <= 0) {
     return Response.json({ error: "Nothing to claim" }, { status: 400 });
   }
 
-  // one wallet holds the fees of every token, so the owed amount is also capped
-  // by what the wallet can actually part with
-  let sendable = owed;
-  try {
-    const balance = await balanceOf(token.launchWallet);
-    sendable = Math.min(owed, sendableFrom(balance));
-  } catch {
-    // reading the chain failed, let payOut do its own balance check
-  }
-
-  if (sendable <= 0) {
-    return Response.json(
-      { error: "The launch wallet has not been topped up for this yet" },
-      { status: 409 },
-    );
-  }
-
-  const amount = sendable;
-
-  const sent = await payOut(wallet.trim(), amount);
+  const sent = await payOut(wallet.trim(), owed, {
+    signer,
+    floor: perToken
+      ? Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS)
+      : undefined,
+  });
   if (!sent.ok) {
     return Response.json({ error: sent.error }, { status: 502 });
   }
@@ -80,7 +126,7 @@ export async function POST(request: Request) {
   const claim = await recordClaim({
     id: randomUUID(),
     tokenId: token.id,
-    amountLamports: amount,
+    amountLamports: owed,
     wallet: wallet.trim(),
     tx: sent.signature,
   });

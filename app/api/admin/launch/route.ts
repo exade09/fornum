@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { hashPhone } from "@/lib/auth/session";
 import { createToken } from "@/lib/db/store";
 import { maskPhone, normalizePhone } from "@/lib/auth/verify";
-import { isValidAddress, launchWalletAddress } from "@/lib/solana/wallet";
+import { balanceOf, isValidAddress, launchWalletAddress } from "@/lib/solana/wallet";
+import { addressAt } from "@/lib/solana/launch-wallets";
 
 /**
  * The operator records a launch they just did by hand
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
     symbol?: string;
     phone?: string;
     feesTo?: string;
+    walletIndex?: number;
   };
 
   const phone = normalizePhone(body.phone ?? "");
@@ -43,11 +45,51 @@ export async function POST(request: Request) {
     );
   }
 
-  const wallet = launchWalletAddress();
+  /**
+   * Which wallet deployed this mint
+   *
+   * A launch wallet is funded before it can deploy anything, so the balance
+   * right after the launch is the operator's float, not the token's fees. It
+   * is recorded here as the line everything is measured from, which is what
+   * lets the site read what a token has earned straight off the chain instead
+   * of being told
+   */
+  const index = body.walletIndex;
+  let wallet: string | null;
+  let baseline = 0;
+
+  if (index === undefined || index === null) {
+    // the old shared wallet, kept so launches recorded before this still work
+    wallet = launchWalletAddress();
+  } else {
+    if (!Number.isInteger(index) || index < 0) {
+      return Response.json(
+        { error: "Wallet index has to be a whole number, zero or above" },
+        { status: 400 },
+      );
+    }
+    wallet = addressAt(index);
+    if (!wallet) {
+      return Response.json(
+        { error: "LAUNCH_WALLETS_MNEMONIC is not set, so that wallet cannot be derived" },
+        { status: 503 },
+      );
+    }
+  }
+
   if (!wallet) {
     return Response.json(
-      { error: "LAUNCH_WALLET_SECRET is not set, so fees would have nowhere to accrue" },
+      { error: "No launch wallet is configured, so fees would have nowhere to accrue" },
       { status: 503 },
+    );
+  }
+
+  try {
+    baseline = await balanceOf(wallet);
+  } catch {
+    return Response.json(
+      { error: "Could not read the launch wallet balance, try again" },
+      { status: 502 },
     );
   }
 
@@ -67,11 +109,18 @@ export async function POST(request: Request) {
     assigneeHash: feesTo ? hashPhone(feesTo) : null,
     assigneeMasked: feesTo ? maskPhone(feesTo) : null,
     launchWallet: wallet,
+    walletIndex: index ?? null,
+    baselineLamports: baseline,
     feesAccruedLamports: 0,
     feesClaimedLamports: 0,
     marketCapUsd: 0,
     holders: 0,
   });
 
-  return Response.json({ id: token.id, mint: token.mint });
+  return Response.json({
+    id: token.id,
+    mint: token.mint,
+    launchWallet: token.launchWallet,
+    baselineLamports: token.baselineLamports,
+  });
 }

@@ -69,6 +69,8 @@ type TokenRow = {
   assignee_hash: string | null;
   assignee_masked: string | null;
   launch_wallet: string;
+  wallet_index: number | null;
+  baseline_lamports: string;
   fees_accrued_lamports: string;
   fees_claimed_lamports: string;
   market_cap_usd: string;
@@ -88,6 +90,8 @@ function toToken(r: TokenRow): Token {
     assigneeHash: r.assignee_hash,
     assigneeMasked: r.assignee_masked,
     launchWallet: r.launch_wallet,
+    walletIndex: r.wallet_index,
+    baselineLamports: Number(r.baseline_lamports),
     feesAccruedLamports: Number(r.fees_accrued_lamports),
     feesClaimedLamports: Number(r.fees_claimed_lamports),
     marketCapUsd: Number(r.market_cap_usd),
@@ -170,12 +174,14 @@ export async function createToken(
     insert into tokens (
       id, mint, name, symbol, status,
       owner_hash, owner_masked, assignee_hash, assignee_masked,
-      launch_wallet, fees_accrued_lamports, fees_claimed_lamports,
+      launch_wallet, wallet_index, baseline_lamports,
+      fees_accrued_lamports, fees_claimed_lamports,
       market_cap_usd, holders
     ) values (
       ${t.id}, ${t.mint}, ${t.name}, ${t.symbol}, ${t.status},
       ${t.ownerHash}, ${t.ownerMasked}, ${t.assigneeHash ?? null}, ${t.assigneeMasked ?? null},
-      ${t.launchWallet}, ${t.feesAccruedLamports}, ${t.feesClaimedLamports},
+      ${t.launchWallet}, ${t.walletIndex ?? null}, ${t.baselineLamports},
+      ${t.feesAccruedLamports}, ${t.feesClaimedLamports},
       ${t.marketCapUsd}, ${t.holders}
     )
     returning *

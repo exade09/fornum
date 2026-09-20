@@ -26,6 +26,9 @@ export const RESERVE_LAMPORTS = 2_000_000;
 /** Headroom for the transfer fee itself */
 export const FEE_LAMPORTS = 10_000;
 
+/** Rent exemption for a plain account, the least a wallet can hold and survive */
+export const RENT_EXEMPT_LAMPORTS = 890_880;
+
 /**
  * The most that can leave the wallet right now
  *
@@ -89,8 +92,14 @@ export type TransferResult =
 export async function payOut(
   to: string,
   lamports: number,
+  options: { signer?: Keypair | null; floor?: number } = {},
 ): Promise<TransferResult> {
-  const keypair = launchKeypair();
+  // a per token launch wallet signs for its own token, and keeps a smaller
+  // floor than the shared wallet because it only has to survive, not to fund
+  // the next launch
+  const keypair = options.signer ?? launchKeypair();
+  const floor = options.floor ?? RESERVE_LAMPORTS;
+
   if (!keypair) {
     return {
       ok: false,
@@ -107,7 +116,7 @@ export async function payOut(
   const connection = connect();
   const available = await connection.getBalance(keypair.publicKey);
 
-  if (available - lamports < RESERVE_LAMPORTS) {
+  if (available - lamports < floor) {
     return { ok: false, error: "The launch wallet is short on balance" };
   }
 

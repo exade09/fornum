@@ -21,6 +21,10 @@ create table if not exists tokens (
 
   -- the wallet that deployed the mint and therefore collects the creator fees
   launch_wallet         text not null,
+  -- which wallet of the launch phrase it is, null for the old shared wallet
+  wallet_index          integer,
+  -- what that wallet held once the launch was paid for, everything above is fees
+  baseline_lamports     bigint not null default 0,
 
   fees_accrued_lamports bigint not null default 0,
   fees_claimed_lamports bigint not null default 0,

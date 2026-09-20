@@ -24,6 +24,20 @@ export type Token = {
 
   /** wallet that deployed the mint and collects the creator fees */
   launchWallet: string;
+  /**
+   * Which wallet of the launch phrase that is
+   *
+   * Null for launches made before wallets were per token, which still run off
+   * the single LAUNCH_WALLET_SECRET
+   */
+  walletIndex?: number | null;
+  /**
+   * What the launch wallet held once the launch was paid for
+   *
+   * The wallet is funded before it can deploy anything, so its balance is not
+   * all fees. Everything above this line is
+   */
+  baselineLamports: number;
 
   feesAccruedLamports: number;
   feesClaimedLamports: number;
@@ -54,9 +68,25 @@ export type LaunchRequest = {
 
 export const LAMPORTS_PER_SOL = 1_000_000_000;
 
-/** What is left to take right now */
+/** What is left to take right now, from what was recorded for the token */
 export function claimableLamports(t: Token) {
   return Math.max(t.feesAccruedLamports - t.feesClaimedLamports, 0);
+}
+
+/**
+ * The same figure worked out from the wallet itself
+ *
+ * A claim moves SOL out of the launch wallet, so the balance falls by exactly
+ * what was taken and nothing has to be subtracted for past claims. Whatever
+ * sits above the funding baseline, minus what the wallet needs to keep to pay
+ * for its own transaction, is what the recipient can have
+ */
+export function claimableFromBalance(
+  balanceLamports: number,
+  baselineLamports: number,
+  reserveLamports: number,
+) {
+  return Math.max(balanceLamports - baselineLamports - reserveLamports, 0);
 }
 
 /** Whoever the fees were handed to, otherwise the owner */
