@@ -65,3 +65,16 @@ create table if not exists launch_requests (
 );
 
 create index if not exists launch_requests_status_idx on launch_requests (status, created_at desc);
+
+-- Sign in codes asked for, so the cost of sending them can be capped.
+-- Only a salted hash, never a number in the clear
+create table if not exists verify_attempts (
+  phone_hash text not null,
+  ip         text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists verify_attempts_recent
+  on verify_attempts (created_at desc);
+create index if not exists verify_attempts_phone
+  on verify_attempts (phone_hash, created_at desc);
