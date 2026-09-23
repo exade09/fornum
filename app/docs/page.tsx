@@ -29,7 +29,7 @@ const SECTIONS: Section[] = [
     id: "overview",
     title: "Overview",
     body: [
-      "Fornum turns a WhatsApp message into a token. You send a name, a ticker and a picture, a person reads it and deploys that token on pump.fun, and the mint address comes back in the same thread",
+      "Fornum turns a WhatsApp message into a token. You send a name, a ticker and a picture, the token is deployed on pump.fun, and the mint address comes back in the same thread",
       "Every coin on pump.fun pays a share of each trade to whoever created it. That share is what Fornum is about. It is split on chain the moment the coin is made, most of it to you, and you take your part from this site with the number you launched from",
       "There is no app to install, no wallet to connect and no account to create. The thread is the product, and the site is where the money is",
     ],
@@ -47,7 +47,7 @@ const SECTIONS: Section[] = [
     title: "Launching",
     body: [
       "Text LAUNCH to the number. You will be asked for three things: a name, a ticker and a picture. Send the picture as a photo rather than a link, square images look best",
-      "A person reads the message and deploys the coin by hand, which usually takes a couple of minutes. You get the mint address back, and from that moment the coin trades like any other on pump.fun",
+      "The token is deployed on pump.fun and the mint address comes back in the same thread, usually within a couple of minutes. From that moment the coin trades like any other",
       "Launching costs you nothing. The network fees for creating the coin are paid by Fornum",
     ],
   },
@@ -123,6 +123,7 @@ const SECTIONS: Section[] = [
     body: [
       "Your number is never written to the chain. What goes on chain and into your session is a salted hash of it, which cannot be turned back into the number",
       "The site shows a masked number anywhere a number appears, so the person holding a token's fees is identifiable to themselves and to nobody else",
+      "The thread itself is read by the Fornum team, the same as any business chat. Send what a launch needs and nothing you would not want read",
     ],
   },
   {

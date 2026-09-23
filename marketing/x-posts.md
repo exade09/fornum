@@ -15,6 +15,9 @@ the file stays the one place the copy lives.
 - No em dashes, no emoji, no exclamation marks
 - Name the mechanics plainly: WhatsApp, pump.fun, SOL, mint, creator fees
 - Concrete over abstract. Say 80 and 20, not "a share"
+- Write by outcome, not by staffing. "The coin is deployed on pump.fun" rather
+  than either "a person deploys it" or "a bot deploys it". The first sounds
+  small, the second is not true
 
 ## Never publish again
 
@@ -30,6 +33,7 @@ fixed. None of it is true.
 | We burn the fees from other coins launched through Fornum | Reads as burning customer money. Only the Fornum 20% is involved |
 | Your place in the queue is a field in the token account | No queue, and the program is not deployed |
 | Register yourself, bring a friend | No registration, no referrals. Reads like a pyramid |
+| It is automated, a bot handles it, instant, 24/7 | Launches are done by the team. Say what happens, not who does it, and never promise a speed the thread cannot keep |
 
 One more that is true but not yet running: the treasury buying the Fornum token
 and burning it. It is written in the docs at the owner's decision. Do not build
@@ -46,15 +50,15 @@ Long form, for an X article rather than a thread. About 600 words.
 A launchpad that lives in one WhatsApp thread
 
 Fornum turns a message into a coin. You send a name, a ticker and a
-picture to one WhatsApp number. A person reads it, deploys the coin on
-pump.fun, and the mint address comes back in the same thread. There is
-no app to install, no wallet to connect and no account to create.
+picture to one WhatsApp number. The coin is deployed on pump.fun and
+the mint address comes back in the same thread. There is no app to
+install, no wallet to connect and no account to create.
 
 What a launch is
 
 Three things. A name, a ticker, and a picture. That is the entire form.
 Send the picture as a photo rather than a link, square images look best.
-A person handles it by hand, which usually takes a couple of minutes.
+The mint usually comes back within a couple of minutes.
 
 Launching costs you nothing. Creating a coin on Solana has a network
 cost of about 0.0117 SOL, and Fornum pays it.
