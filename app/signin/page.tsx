@@ -48,8 +48,8 @@ export default async function SignInPage() {
             display. The number itself is not stored in the cookie
           </p>
           <p>
-            Signing in is also how consent is recorded, so a number that never
-            signed in is never called
+            Signing in is how a number proves it is yours, so only the number
+            a token was launched from can claim what it earned
           </p>
         </Card>
       </section>

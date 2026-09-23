@@ -27,8 +27,8 @@ export function SiteFooter() {
       </div>
 
       <p className="mt-4 max-w-[60ch] text-xs text-secondary">
-        We only call numbers that confirmed consent. Not affiliated with
-        WhatsApp or Meta
+        We only reply in threads you start. Not affiliated with WhatsApp or
+        Meta
       </p>
     </footer>
   );

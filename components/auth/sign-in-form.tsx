@@ -81,8 +81,8 @@ export function SignInForm({ configured }: { configured: boolean }) {
           You are signed in
         </span>
         <p className="tnum max-w-[44ch] text-sm text-secondary">
-          {masked} is confirmed. Fees pointed at this number can be delivered,
-          and you can stop calls to it at any time
+          {masked} is confirmed. Fees pointed at this number can be claimed
+          from the token page
         </p>
       </Card>
     );

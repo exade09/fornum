@@ -71,8 +71,7 @@ export function NumberPlate({
       </div>
 
       <span className="text-xs text-secondary">
-        Every launch, every confirmation and every payout call runs through this
-        one thread
+        Every launch and every mint address runs through this one thread
       </span>
     </div>
   );

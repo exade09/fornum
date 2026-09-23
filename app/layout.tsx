@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s — Fornum",
   },
   description:
-    "Fornum deploys your token on Solana and routes its creator fees to one confirmed WhatsApp number. We claim, call and pay out in dollars",
+    "Fornum deploys your token on Solana from one WhatsApp message. Its creator fees are split on chain and you claim your share with the number you launched from",
   openGraph: {
     siteName: "Fornum",
     title: "Fornum",

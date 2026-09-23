@@ -116,8 +116,8 @@ animation off never shows a wrong number.
 ## Privacy
 
 Only a salted hash of a phone number goes on chain. The mapping lives off chain
-and is handed to whoever places the call, for the length of that call. Revoking
-consent removes the number from every future call.
+and is what the operator reads to answer the thread. Nothing is ever sent to a
+number that did not write first.
 
 ## Signing in
 
