@@ -69,6 +69,15 @@ const SECTIONS: Section[] = [
     figure: "split",
   },
   {
+    id: "treasury",
+    title: "Where the twenty percent goes",
+    body: [
+      "The Fornum share is not kept. It pays for the launches themselves, which is what makes launching free, and what is left buys the Fornum token on the open market",
+      "Everything bought that way is burned. That supply leaves circulation and cannot come back, so the fees the service earns end up reducing the supply of its own token rather than sitting in an account",
+      "The buy and the burn are both ordinary Solana transactions. Anyone can follow the treasury address and check that what came in went back into the token",
+    ],
+  },
+  {
     id: "where",
     title: "Where your fees sit",
     body: [
