@@ -89,7 +89,7 @@ const SECTIONS: Section[] = [
     id: "signing-in",
     title: "Signing in",
     body: [
-      "Your phone number is your account. Enter it on the sign in page and a one time code arrives by SMS or WhatsApp, whichever you pick",
+      "Your phone number is your account. Enter it on the sign in page, send the code it shows you from that number on WhatsApp, and you are in. Then link the wallet your fees should go to",
       "There is no password to choose and nothing to remember. The number that launched a coin is the number that can claim it",
     ],
   },

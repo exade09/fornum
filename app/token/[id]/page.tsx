@@ -10,7 +10,7 @@ import {
   WhatsAppIcon,
 } from "@/components/icons";
 import { compactUsd, num, shortAddress, sol, usdFrom } from "@/lib/data";
-import { claimsForToken, getToken } from "@/lib/db/store";
+import { claimsForToken, getToken, getWallet } from "@/lib/db/store";
 import {
   claimableLamports,
   feeRecipientHash,
@@ -37,6 +37,8 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
     solPriceUsd(),
     readSession(),
   ]);
+
+  const linkedWallet = session ? await getWallet(session.sub) : null;
 
   const left = claimableLamports(t);
   const ratio =
@@ -158,6 +160,7 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
             lamports={left}
             recipient={feeRecipientMasked(t)}
             signedIn={Boolean(session)}
+            linkedWallet={linkedWallet}
             canClaim={session?.sub === feeRecipientHash(t)}
             price={price}
           />

@@ -40,7 +40,7 @@ Production build is `npm run build`, serve it with `npm start`.
 /tokens           everything launched here, fees and who they belong to
 /token/[id]       one token: fees, claim, hand over, claim history
 /payouts          claims, every one with a transaction
-/signin           sign in with a phone number, code over SMS or WhatsApp
+/signin           sign in with a phone number by writing to it, link a wallet
 /docs             how it works, including the money flow
 /admin            pin the counters shown on the site
 /legal/*          terms and privacy
@@ -121,18 +121,31 @@ number that did not write first.
 
 ## Signing in
 
-A phone number is the account. `/signin` sends a one time code over WhatsApp,
-or SMS if the visitor picks that, and the session is a signed cookie holding a
-salted hash of the number plus a masked copy for display. The raw number is
-never in the cookie.
+A phone number is the account, and nothing is sent to prove it. The visitor
+types their number on `/signin` and gets a short code with a `wa.me` link to
+the Fornum number. They send it, the WhatsApp Cloud API delivers the message
+to `/api/whatsapp/webhook`, and because WhatsApp has already checked who the
+sender is, a message carrying that code from that number approves the sign in.
+The page polls `/api/auth/check` and moves on by itself.
 
-Delivery goes through Twilio Verify: one API for both channels, with Meta
-approved authentication templates included, so no template review is needed.
-Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_VERIFY_SERVICE_SID`
-to switch it on. With those unset the flow runs on a local stub that accepts
-`000000`, so the whole path can be walked before an account exists.
+Two checks keep it tight: the message must come from the number that was
+typed, and only the browser that asked holds the secret (an httpOnly cookie)
+that turns an approved challenge into a session. Inbound messages and the
+reply inside that conversation are free, so a sign in costs nothing.
 
-`lib/auth/verify.ts` is the only file that knows about the provider.
+After that the visitor links a wallet, connected from Phantom, Solflare or
+Backpack or pasted, and every claim goes there unless another address is
+typed for that claim. Wallets live in `accounts`, keyed by the number's hash.
+
+The number can stay in the WhatsApp Business app while it is on the Cloud API,
+through Meta's coexistence onboarding, so launches are still answered from the
+phone. Set `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN`, point the app's
+webhook at `/api/whatsapp/webhook` and subscribe to `messages`. Without them,
+development signs in without a message and production refuses. Run
+`db/004-whatsapp-sign-in.sql` once.
+
+`lib/auth/verify.ts` holds the challenge, `lib/whatsapp/cloud.ts` is the only
+file that knows about Meta.
 
 ## Status
 

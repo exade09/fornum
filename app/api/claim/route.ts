@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readSession } from "@/lib/auth/session";
-import { getToken, recordClaim } from "@/lib/db/store";
+import { getToken, getWallet, recordClaim } from "@/lib/db/store";
 import {
   FEE_LAMPORTS,
   RENT_EXEMPT_LAMPORTS,
@@ -31,10 +31,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Sign in first" }, { status: 401 });
   }
 
-  const { tokenId, wallet } = (await request.json()) as {
+  const body = (await request.json()) as {
     tokenId?: string;
     wallet?: string;
   };
+  const tokenId = body.tokenId;
+  // an address typed for this claim wins, otherwise the one linked to the number
+  const wallet = body.wallet?.trim() || (await getWallet(session.sub));
 
   if (!tokenId || !wallet || !isValidAddress(wallet)) {
     return Response.json(

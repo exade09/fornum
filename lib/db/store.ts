@@ -401,3 +401,44 @@ export async function markRequestLaunched(id: string, tokenId: string) {
      where id = ${id}
   `;
 }
+
+/* ------------------------------------------------------------------ */
+/* Accounts                                                            */
+/* ------------------------------------------------------------------ */
+
+declare global {
+  // pages and route handlers are separate module graphs in dev, so without a
+  // database the linked wallets have to live somewhere both can see
+  var __fornumWallets: Map<string, string> | undefined;
+}
+
+const memWallets = (globalThis.__fornumWallets ??= new Map<string, string>());
+
+/** The wallet a number wants its fees sent to, if it has linked one */
+export async function getWallet(phoneHash: string): Promise<string | null> {
+  if (!sql) return memWallets.get(phoneHash) ?? null;
+
+  return safeRead(
+    "accounts",
+    async () => {
+      const rows = await sql!<{ wallet: string }[]>`
+        select wallet from accounts where phone_hash = ${phoneHash}
+      `;
+      return rows[0]?.wallet ?? null;
+    },
+    null,
+  );
+}
+
+export async function setWallet(phoneHash: string, wallet: string) {
+  if (!sql) {
+    memWallets.set(phoneHash, wallet);
+    return;
+  }
+
+  await sql`
+    insert into accounts (phone_hash, wallet) values (${phoneHash}, ${wallet})
+    on conflict (phone_hash)
+    do update set wallet = excluded.wallet, updated_at = now()
+  `;
+}

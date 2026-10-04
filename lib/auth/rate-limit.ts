@@ -4,10 +4,8 @@ import "server-only";
 /**
  * A cap on how often a code can be asked for
  *
- * Every verification Twilio sends is billed, so an open endpoint is somebody
- * else's script spending our balance overnight. It is also the difference
- * between a wrong number being a typo and a wrong number being a way to
- * pester whoever owns it.
+ * Nothing is sent out any more, the visitor writes to us, so this only keeps
+ * one number from asking for codes without end.
  *
  * Counted in the database rather than in memory, because on serverless each
  * request may land on a fresh instance and an in memory counter would reset
@@ -15,10 +13,14 @@ import "server-only";
  * to memory, which is still better than nothing on a single machine
  */
 
-/** Codes to one number in the window */
+/**
+ * Codes to one number in the window
+ *
+ * The only cap. Each number has its own count, so it never limits how many
+ * different people sign in, and there is no cap per address: people behind
+ * one network must not lock each other out
+ */
 const PER_NUMBER = 5;
-/** Codes from one address in the window, for a script walking many numbers */
-const PER_ADDRESS = 20;
 const WINDOW_MINUTES = 60;
 
 const memory: { phoneHash: string; ip: string; at: number }[] = [];
@@ -35,8 +37,7 @@ function fromMemory(phoneHash: string, ip: string): Verdict {
   while (memory.length > 0 && memory[0].at < cutoff) memory.shift();
 
   const byNumber = memory.filter((a) => a.phoneHash === phoneHash).length;
-  const byAddress = memory.filter((a) => a.ip === ip).length;
-  if (byNumber >= PER_NUMBER || byAddress >= PER_ADDRESS) return TOO_MANY;
+  if (byNumber >= PER_NUMBER) return TOO_MANY;
 
   memory.push({ phoneHash, ip, at: Date.now() });
   return { ok: true };
@@ -55,26 +56,19 @@ export async function allowVerification(
   if (!sql) return fromMemory(phoneHash, ip);
 
   try {
-    const [row] = await sql<{ by_number: string; by_address: string }[]>`
-      with recent as (
-        select phone_hash, ip
-          from verify_attempts
-         where created_at > now() - ${`${WINDOW_MINUTES} minutes`}::interval
-      ),
-      inserted as (
+    // the address is still recorded, for looking into abuse, but not counted
+    const [row] = await sql<{ by_number: string }[]>`
+      with inserted as (
         insert into verify_attempts (phone_hash, ip) values (${phoneHash}, ${ip})
       )
-      select
-        count(*) filter (where phone_hash = ${phoneHash}) as by_number,
-        count(*) filter (where ip = ${ip})                as by_address
-      from recent
+      select count(*) as by_number
+        from verify_attempts
+       where phone_hash = ${phoneHash}
+         and created_at > now() - ${`${WINDOW_MINUTES} minutes`}::interval
     `;
 
     if (!row) return { ok: true };
-    return Number(row.by_number) >= PER_NUMBER ||
-      Number(row.by_address) >= PER_ADDRESS
-      ? TOO_MANY
-      : { ok: true };
+    return Number(row.by_number) >= PER_NUMBER ? TOO_MANY : { ok: true };
   } catch (err) {
     // a limiter that is down must not take sign in down with it
     console.error("[rate-limit]", err instanceof Error ? err.message : err);

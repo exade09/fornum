@@ -78,3 +78,26 @@ create index if not exists verify_attempts_recent
   on verify_attempts (created_at desc);
 create index if not exists verify_attempts_phone
   on verify_attempts (phone_hash, created_at desc);
+
+-- Sign in by writing to the Fornum number. The visitor types a number, gets a
+-- code, and sends it from that number; the webhook approves the challenge and
+-- only the browser holding the matching secret can turn it into a session
+create table if not exists login_challenges (
+  id            text primary key,
+  code          text unique not null,
+  phone_hash    text not null,
+  phone_masked  text not null,
+  browser_hash  text not null,
+  status        text not null default 'pending',
+  expires_at    timestamptz not null,
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists login_challenges_expires on login_challenges (expires_at);
+
+-- Where a number wants its fees sent
+create table if not exists accounts (
+  phone_hash  text primary key,
+  wallet      text not null,
+  updated_at  timestamptz not null default now()
+);

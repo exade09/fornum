@@ -1,28 +1,38 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/primitives";
-import { Segmented } from "@/components/ui/segmented";
-import { CheckIcon, PhoneIcon, WhatsAppIcon } from "@/components/icons";
+import { CheckIcon, WhatsAppIcon } from "@/components/icons";
+import { WalletLinker } from "@/components/wallet/wallet-linker";
 import { cn } from "@/lib/cn";
 
-type Channel = "whatsapp" | "sms";
-type Stage = "phone" | "code" | "done";
+type Stage = "phone" | "send" | "wallet" | "done";
 
-export function SignInForm({ configured }: { configured: boolean }) {
+type Started = { code: string; message: string; link: string; stub: boolean };
+
+const POLL_MS = 2000;
+
+/**
+ * Number, message, wallet
+ *
+ * The visitor types their number, sends the code it gives them from that
+ * number on WhatsApp, and the page notices on its own. Then they link the
+ * wallet their fees should go to, which is skipped when one is already linked
+ */
+export function SignInForm() {
   const router = useRouter();
-  const [channel, setChannel] = useState<Channel>("whatsapp");
   const [stage, setStage] = useState<Stage>("phone");
   const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
+  const [started, setStarted] = useState<Started | null>(null);
   const [masked, setMasked] = useState("");
+  const [wallet, setWallet] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const phoneReady = phone.replace(/\D/g, "").length >= 8;
 
-  async function sendCode(e: React.FormEvent) {
+  async function start(e: React.FormEvent) {
     e.preventDefault();
     if (!phoneReady || busy) return;
 
@@ -31,42 +41,55 @@ export function SignInForm({ configured }: { configured: boolean }) {
     const res = await fetch("/api/auth/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, channel }),
+      body: JSON.stringify({ phone }),
     });
     setBusy(false);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Could not send the code");
+      setError(body.error ?? "Could not start signing in");
       return;
     }
-    setStage("code");
+    setStarted((await res.json()) as Started);
+    setStage("send");
   }
 
-  async function confirm(e: React.FormEvent) {
-    e.preventDefault();
-    if (code.length < 4 || busy) return;
+  // wait for the message to arrive at the webhook
+  useEffect(() => {
+    if (stage !== "send") return;
+    let stopped = false;
 
-    setBusy(true);
-    setError("");
-    const res = await fetch("/api/auth/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code }),
-    });
-    setBusy(false);
+    async function poll() {
+      while (!stopped) {
+        const res = await fetch("/api/auth/check", { method: "POST" }).catch(
+          () => null,
+        );
+        if (stopped) return;
 
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Wrong code");
-      return;
+        if (res?.status === 200) {
+          const body = (await res.json()) as { masked: string; wallet: string | null };
+          setMasked(body.masked);
+          setWallet(body.wallet);
+          setStage(body.wallet ? "done" : "wallet");
+          // the server would render the account card over the wallet step,
+          // so the refresh waits until there is nothing left to do here
+          if (body.wallet) router.refresh();
+          return;
+        }
+        if (res?.status === 410) {
+          setError("The code expired. Start again");
+          setStage("phone");
+          return;
+        }
+        await new Promise((r) => setTimeout(r, POLL_MS));
+      }
     }
 
-    const body = (await res.json()) as { masked: string };
-    setMasked(body.masked);
-    setStage("done");
-    router.refresh();
-  }
+    poll();
+    return () => {
+      stopped = true;
+    };
+  }, [stage, router]);
 
   if (stage === "done") {
     return (
@@ -77,13 +100,17 @@ export function SignInForm({ configured }: { configured: boolean }) {
         <span className="flex size-14 items-center justify-center rounded-full bg-brand/15">
           <CheckIcon className="size-7 text-brand" />
         </span>
-        <span className="text-lg font-bold text-primary">
-          You are signed in
-        </span>
+        <span className="text-lg font-bold text-primary">You are signed in</span>
         <p className="tnum max-w-[44ch] text-sm text-secondary">
-          {masked} is confirmed. Fees pointed at this number can be claimed
+          {masked} is confirmed and its fees go to the linked wallet. Claim them
           from the token page
         </p>
+        <a
+          href="/tokens"
+          className="mt-2 flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-background transition-colors hover:bg-primary-hover"
+        >
+          Find your token
+        </a>
       </Card>
     );
   }
@@ -92,35 +119,23 @@ export function SignInForm({ configured }: { configured: boolean }) {
     <Card sheen className="animate-section-in flex flex-col gap-5 p-6">
       <div className="flex flex-col gap-2">
         <h2 className="font-display text-xl font-normal text-primary">
-          Sign in with your number
+          {stage === "wallet" ? "Link your wallet" : "Sign in with your number"}
         </h2>
         <p className="text-sm text-secondary">
-          One code, no password. The same number receives the fees from tokens
-          you launch
+          {stage === "wallet"
+            ? `${masked} is confirmed. Pick the wallet the fees should go to, you can change it later`
+            : "No password and no code to wait for. You send one message from your WhatsApp and you are in"}
         </p>
       </div>
 
-      {stage === "phone" ? (
-        <form onSubmit={sendCode} className="flex flex-col gap-5">
-          <Segmented<Channel>
-            value={channel}
-            onChange={setChannel}
-            options={[
-              { id: "whatsapp", label: "WhatsApp" },
-              { id: "sms", label: "SMS" },
-            ]}
-          />
-
+      {stage === "phone" && (
+        <form onSubmit={start} className="flex flex-col gap-5">
           <label className="flex flex-col gap-2">
             <span className="text-[10px] font-bold tracking-wider text-secondary">
               PHONE NUMBER
             </span>
             <span className="relative flex h-11 items-center">
-              {channel === "whatsapp" ? (
-                <WhatsAppIcon className="absolute left-4 size-4 text-brand" />
-              ) : (
-                <PhoneIcon className="absolute left-4 size-4 text-brand" />
-              )}
+              <WhatsAppIcon className="absolute left-4 size-4 text-brand" />
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -131,7 +146,7 @@ export function SignInForm({ configured }: { configured: boolean }) {
               />
             </span>
             <span className="text-xs text-secondary">
-              Include the country code. We send one code and nothing else
+              The number you launched from, with the country code
             </span>
           </label>
 
@@ -142,59 +157,67 @@ export function SignInForm({ configured }: { configured: boolean }) {
             disabled={!phoneReady || busy}
             className="flex h-11 w-fit items-center rounded-full bg-primary px-6 text-sm font-bold text-background transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {busy ? "Sending" : "Send code"}
+            {busy ? "One moment" : "Continue"}
           </button>
         </form>
-      ) : (
-        <form onSubmit={confirm} className="flex flex-col gap-5">
-          <label className="animate-fade-slide-up motion-reduce:animate-none flex flex-col gap-2">
-            <span className="text-[10px] font-bold tracking-wider text-secondary">
-              CODE FROM {channel === "whatsapp" ? "WHATSAPP" : "SMS"}
-            </span>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="••••••"
-              className="tnum h-12 w-full max-w-[220px] rounded-full border border-primary/[0.06] bg-field px-5 text-center text-lg tracking-[0.4em] text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-            />
-            <span className="tnum text-xs text-secondary">Sent to {phone}</span>
-          </label>
+      )}
 
-          {!configured && (
+      {stage === "send" && started && (
+        <div className="animate-fade-slide-up motion-reduce:animate-none flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-bold tracking-wider text-secondary">
+              SEND THIS FROM {phone.trim()}
+            </span>
+            <span className="tnum w-fit rounded-xl border border-primary/[0.06] bg-field px-5 py-3 font-mono text-2xl tracking-[0.3em] text-primary">
+              {started.code}
+            </span>
+          </div>
+
+          <a
+            href={started.link}
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-11 w-fit items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-background transition-colors hover:bg-primary-hover"
+          >
+            <WhatsAppIcon className="size-4" />
+            Open WhatsApp and send
+          </a>
+
+          <p className="flex items-center gap-2 text-xs text-secondary">
+            <span className="size-2 animate-pulse rounded-full bg-brand motion-reduce:animate-none" />
+            Waiting for your message. This page moves on by itself
+          </p>
+
+          {started.stub && (
             <p className="rounded-lg border border-queued/25 bg-queued/[0.07] px-3 py-2 text-xs text-queued">
-              No provider connected yet, so nothing was actually sent. Use
-              000000 to walk through the flow
+              No WhatsApp line connected, so this local build signs you in
+              without the message
             </p>
           )}
 
-          {error && <p className="text-xs text-error">{error}</p>}
+          <button
+            type="button"
+            onClick={() => {
+              setStage("phone");
+              setStarted(null);
+              setError("");
+            }}
+            className={cn("w-fit text-sm text-secondary transition-colors hover:text-primary")}
+          >
+            Change number
+          </button>
+        </div>
+      )}
 
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={code.length < 4 || busy}
-              className="flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-background transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {busy ? "Checking" : "Confirm"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStage("phone");
-                setCode("");
-                setError("");
-              }}
-              className={cn(
-                "text-sm text-secondary transition-colors hover:text-primary",
-              )}
-            >
-              Change number
-            </button>
-          </div>
-        </form>
+      {stage === "wallet" && (
+        <WalletLinker
+          current={wallet}
+          onLinked={(address) => {
+            setWallet(address);
+            setStage("done");
+            router.refresh();
+          }}
+        />
       )}
     </Card>
   );

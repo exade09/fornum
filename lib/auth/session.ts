@@ -1,6 +1,5 @@
 import { createHmac, timingSafeEqual, createHash } from "node:crypto";
 import { cookies } from "next/headers";
-import { maskPhone } from "@/lib/auth/verify";
 
 /**
  * The session is a signed cookie holding the salted hash of the number and a
@@ -56,12 +55,14 @@ function decode(raw: string): Session | null {
   }
 }
 
-export async function createSession(phone: string) {
-  const session: Session = {
-    sub: hashPhone(phone),
-    masked: maskPhone(phone),
-    at: Date.now(),
-  };
+/**
+ * Starts a session for a number already proven to be the visitor's
+ *
+ * Takes the hash and the masked copy rather than the number, because by the
+ * time a challenge is approved the number in the clear is long gone
+ */
+export async function createSession(sub: string, masked: string) {
+  const session: Session = { sub, masked, at: Date.now() };
 
   (await cookies()).set(COOKIE, encode(session), {
     httpOnly: true,
