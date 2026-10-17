@@ -6,10 +6,11 @@ import { cn } from "@/lib/cn";
  * The product, shown as the thing it actually is: one WhatsApp thread that
  * ends in a mint address
  *
- * Drawn as a phone with the WhatsApp dark theme, the same thread the promo
- * videos play: LAUNCH, the prompt, the picture with its name and ticker, then
- * the mint and the launch wallet, with the addresses left as placeholders. Messages land in order with a stagger, so
- * the page reads like a conversation playing rather than a static screenshot
+ * Laid out like WhatsApp's own chat screen: the contact header, a date chip,
+ * the encryption notice, bubbles with tails and their times inside, and the
+ * input row. Accents use the Fornum green. Messages land in order with a
+ * stagger, so the page reads like a conversation playing rather than a static
+ * screenshot
  */
 
 type Msg =
@@ -30,56 +31,76 @@ const THREAD: Msg[] = [
 ];
 
 const STEP = 560;
+const OUT = "#1d5a3c";
+const IN = "#262628";
+const ACCENT = "#3ec46d";
+
+/** The doodles WhatsApp draws behind every chat, kept faint */
+const WALLPAPER = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='none' stroke='#ffffff' stroke-opacity='0.045' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'>
+    <circle cx='16' cy='18' r='7'/><path d='M13 17h.01M19 17h.01M13 21c1.5 1.5 4.5 1.5 6 0'/>
+    <path d='M48 10l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L39 17l6-1z'/>
+    <rect x='82' y='8' width='18' height='13' rx='3'/><path d='M86 21v5l5-5'/>
+    <path d='M20 52c-4-4-10 0-6 5l6 6 6-6c4-5-2-9-6-5z'/>
+    <path d='M50 46h16v12a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4zM66 50h3a3 3 0 0 1 0 6h-3'/>
+    <circle cx='96' cy='54' r='9'/><path d='M96 48v6l4 2'/>
+    <path d='M10 92l8-10 6 7 4-4 8 9z'/><circle cx='30' cy='84' r='2'/>
+    <path d='M54 84a8 8 0 1 1 16 0c0 6-8 12-8 12s-8-6-8-12z'/><circle cx='62' cy='84' r='2.5'/>
+    <path d='M88 86l12-6-4 14-3-5z'/>
+    <path d='M104 108l4-4M100 112l2-2'/><path d='M40 110h10M45 105v10'/>
+  </svg>`,
+)}")`;
 
 export function PhoneThread({ number }: { number: string }) {
   return (
     <div className="animate-scale-in motion-reduce:animate-none relative mx-auto w-full max-w-[330px]">
-      <div className="relative rounded-[44px] bg-gradient-to-b from-[#3a3a3e] to-[#1c1c1e] p-[2px] shadow-2xl">
-        <div className="rounded-[42px] bg-black p-[7px]">
-          <div className="relative overflow-hidden rounded-[36px] bg-[#0e0e0e]">
-            <StatusBar />
-
-            <div className="flex items-center gap-2.5 border-b border-white/[0.06] bg-[#141414] px-3 pt-0.5 pb-2">
-              <Chevron />
-              <Image
-                src={logo}
-                alt=""
-                width={36}
-                height={36}
-                className="size-8 shrink-0 rounded-full"
-              />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-[14px] font-semibold text-white">
-                  Fornum
-                </span>
-                <span className="tnum truncate text-[11px] text-white/50">
-                  {number}
-                </span>
-              </div>
-              <VideoIcon />
-            </div>
-
-            <div
-              className="flex flex-col gap-1.5 px-2.5 py-2.5"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.025) 0 2px, transparent 3px), radial-gradient(circle at 70% 80%, rgba(255,255,255,0.02) 0 3px, transparent 4px)",
-                backgroundSize: "46px 46px, 62px 62px",
-              }}
-            >
-              {THREAD.map((m, i) => (
-                <Bubble key={i} msg={m} delay={300 + i * STEP} />
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 bg-[#101010] px-3 pt-2 pb-5">
-              <span className="text-[22px] leading-none font-light text-white">+</span>
-              <span className="h-7 flex-1 rounded-full bg-[#222]" />
-              <span className="flex size-7 items-center justify-center rounded-full bg-[#2ccb5a]">
-                <Mic />
+      <div className="relative overflow-hidden rounded-[38px] border border-primary/10 bg-[#0b0b0b] p-2 shadow-2xl ring-1 ring-primary/[0.06]">
+        <div className="relative overflow-hidden rounded-[30px] bg-[#0b0b0b]">
+          <div className="flex items-center gap-2 border-b border-white/[0.06] bg-[#161618] px-2.5 py-2">
+            <Chevron />
+            <Image
+              src={logo}
+              alt=""
+              width={34}
+              height={34}
+              className="size-[34px] shrink-0 rounded-full"
+            />
+            <div className="flex min-w-0 flex-1 flex-col leading-tight">
+              <span className="truncate text-[14px] font-semibold text-white">
+                Fornum
+              </span>
+              <span className="tnum truncate text-[11px] text-white/45">
+                {number}
               </span>
             </div>
-            <span className="absolute bottom-1.5 left-1/2 h-[4px] w-24 -translate-x-1/2 rounded-full bg-white/80" />
+            <VideoIcon />
+            <PhoneIcon />
+          </div>
+
+          <div
+            className="flex flex-col gap-1 px-2.5 pt-2 pb-3"
+            style={{ backgroundImage: WALLPAPER, backgroundSize: "120px 120px" }}
+          >
+            <span className="self-center rounded-md bg-[#1d1d1f] px-2.5 py-0.5 text-[10px] font-medium text-white/55">
+              Today
+            </span>
+            <span className="mx-3 mb-1 flex items-start justify-center gap-1 rounded-md bg-[#201e17] px-2.5 py-1.5 text-center text-[9.5px] leading-snug text-[#e9c46a]">
+              <Lock />
+              Messages and calls are end-to-end encrypted. Only people in this
+              chat can read them
+            </span>
+            {THREAD.map((m, i) => (
+              <Bubble key={i} msg={m} delay={300 + i * STEP} />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2.5 border-t border-white/[0.06] bg-[#161618] px-3 py-2">
+            <Plus />
+            <span className="flex h-7 flex-1 items-center justify-end rounded-full border border-white/[0.06] bg-[#232325] px-2">
+              <Sticker />
+            </span>
+            <Camera />
+            <Mic />
           </div>
         </div>
       </div>
@@ -92,10 +113,40 @@ export function PhoneThread({ number }: { number: string }) {
   );
 }
 
-function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
-  const style = { animationDelay: `${delay}ms` };
-  const card = "animate-card-in motion-reduce:animate-none";
+/** A bubble with WhatsApp's little tail on the sender's side */
+function Shell({
+  mine,
+  delay,
+  className,
+  children,
+}: {
+  mine: boolean;
+  delay: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "animate-card-in motion-reduce:animate-none relative rounded-xl",
+        mine ? "self-end rounded-br-[4px]" : "self-start rounded-bl-[4px]",
+        className,
+      )}
+      style={{ animationDelay: `${delay}ms`, backgroundColor: mine ? OUT : IN }}
+    >
+      {children}
+      <svg
+        viewBox="0 0 8 10"
+        aria-hidden="true"
+        className={cn("absolute bottom-0 h-2.5 w-2", mine ? "-right-[5px]" : "-left-[5px] -scale-x-100")}
+      >
+        <path d="M0 0v10h8C4 9 1 6 0 0Z" fill={mine ? OUT : IN} />
+      </svg>
+    </div>
+  );
+}
 
+function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
   /* Fornum is typing, shown for one step and then gone */
   if (msg.kind === "typing") {
     return (
@@ -103,7 +154,7 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
         className="animate-typing-window motion-reduce:hidden self-start overflow-hidden"
         style={{ animationDelay: `${delay}ms`, animationDuration: `${STEP}ms` }}
       >
-        <span className="flex h-8 items-center gap-1 rounded-2xl bg-[#242626] px-3.5">
+        <span className="flex h-7 items-center gap-1 rounded-xl px-3" style={{ backgroundColor: IN }}>
           {[0, 1, 2].map((i) => (
             <span
               key={i}
@@ -119,79 +170,69 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
   /* what the launcher sends: a picture with the name and ticker under it */
   if (msg.kind === "picture") {
     return (
-      <div className={cn(card, "w-[52%] self-end rounded-2xl bg-[#16482e] p-1")} style={style}>
+      <Shell mine delay={delay} className="w-[54%] p-[3px]">
         <Image
           src={logo}
           alt=""
           width={220}
           height={220}
-          className="aspect-square w-full rounded-xl"
+          className="aspect-square w-full rounded-[9px]"
         />
         <div className="flex items-end justify-between gap-1 px-1.5 pt-1 pb-0.5">
-          <span className="text-[11px] leading-snug whitespace-nowrap text-white">
+          <span className="text-[12px] leading-snug whitespace-nowrap text-white">
             NAME: Fornum
             <br />
             TICKER: FORNUM
           </span>
-          <Meta mine inline />
+          <Meta mine />
         </div>
-      </div>
+      </Shell>
     );
   }
 
   /* the reply that ends the launch: the mint is live */
   if (msg.kind === "launched") {
     return (
-      <div className={cn(card, "flex max-w-[96%] items-end gap-2 self-start rounded-2xl bg-[#242626] px-3 py-1.5")} style={style}>
-        <span className="text-[12px] leading-snug whitespace-nowrap text-white">
+      <Shell mine={false} delay={delay} className="flex max-w-[96%] items-end gap-2 px-2.5 py-1.5">
+        <span className="text-[12.5px] leading-snug whitespace-nowrap text-white">
           Launched pump.fun/xxxxxxxxxxxx
         </span>
-        <Meta inline />
-      </div>
+        <Meta />
+      </Shell>
     );
   }
 
   /* and where the fees collect, to be claimed on the site */
   if (msg.kind === "fees") {
     return (
-      <div className={cn(card, "max-w-[90%] self-start rounded-2xl bg-[#242626] px-3 py-1.5")} style={style}>
-        <span className="block text-[12px] leading-snug text-white">
+      <Shell mine={false} delay={delay} className="max-w-[92%] px-2.5 py-1.5">
+        <span className="block text-[12.5px] leading-snug text-white">
           Your launch wallet:
           <br />
           [xxxxxxxxx]
           <br />
           Fees are yours, claim them on the site
         </span>
-        <Meta />
-      </div>
+        <div className="flex justify-end">
+          <Meta />
+        </div>
+      </Shell>
     );
   }
 
   const mine = msg.kind === "you";
   return (
-    <div
-      className={cn(
-        card,
-        "flex max-w-[92%] items-end gap-2 rounded-2xl px-3 py-1.5",
-        mine ? "self-end bg-[#16482e]" : "self-start bg-[#242626]",
-      )}
-      style={style}
-    >
-      <span className="text-[12px] leading-snug whitespace-nowrap text-white">{msg.text}</span>
-      <Meta mine={mine} inline />
-    </div>
+    <Shell mine={mine} delay={delay} className="flex max-w-[92%] items-end gap-2 px-2.5 py-1.5">
+      <span className="text-[12.5px] leading-snug whitespace-nowrap text-white">{msg.text}</span>
+      <Meta mine={mine} />
+    </Shell>
   );
 }
 
-/** Time, and the blue read ticks on what the launcher sent */
-function Meta({ mine = false, inline = false }: { mine?: boolean; inline?: boolean }) {
+/** Time inside the bubble, and the blue read ticks on what the launcher sent */
+function Meta({ mine = false }: { mine?: boolean }) {
   return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-end gap-1 text-[10px] leading-none text-white/45",
-        inline ? "translate-y-0.5" : "mt-0.5",
-      )}
-    >
+    <span className="flex shrink-0 translate-y-0.5 items-center gap-0.5 text-[9.5px] leading-none text-white/50">
       17:22
       {mine && (
         <svg viewBox="0 0 16 10" className="h-2.5 w-4" aria-hidden="true">
@@ -202,49 +243,72 @@ function Meta({ mine = false, inline = false }: { mine?: boolean; inline?: boole
   );
 }
 
-function StatusBar() {
-  return (
-    <div className="relative flex h-9 items-center justify-between px-6 text-white">
-      <span className="tnum text-[13px] font-semibold">17:22</span>
-      <span className="absolute top-2 left-1/2 h-[22px] w-[78px] -translate-x-1/2 rounded-full bg-black" />
-      <span className="flex items-center gap-1.5">
-        <svg viewBox="0 0 18 12" className="h-2.5 w-4" aria-hidden="true">
-          {[0, 1, 2, 3].map((i) => (
-            <rect key={i} x={i * 4.6} y={9 - i * 2.6} width="3" height={3 + i * 2.6} rx="0.8" fill="currentColor" />
-          ))}
-        </svg>
-        <svg viewBox="0 0 26 12" className="h-2.5 w-6" aria-hidden="true">
-          <rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity="0.5" />
-          <rect x="2" y="2" width="17" height="8" rx="1.8" fill="currentColor" />
-          <rect x="23.5" y="4" width="1.8" height="4" rx="0.9" fill="currentColor" opacity="0.5" />
-        </svg>
-      </span>
-    </div>
-  );
-}
+const icon = { fill: "none", stroke: ACCENT, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
 function Chevron() {
   return (
-    <svg viewBox="0 0 10 18" className="h-4 w-2.5 shrink-0 text-white" aria-hidden="true">
-      <path d="M8.5 1.5 1.5 9l7 7.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 10 18" className="h-[18px] w-2.5 shrink-0" aria-hidden="true">
+      <path d="M8.5 1.5 1.5 9l7 7.5" {...icon} strokeWidth={2.2} />
     </svg>
   );
 }
 
 function VideoIcon() {
   return (
-    <svg viewBox="0 0 24 16" className="h-4 w-6 shrink-0 text-white" aria-hidden="true">
-      <rect x="1" y="1.5" width="15" height="13" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="m17.5 6 5-3v10l-5-3Z" fill="currentColor" />
+    <svg viewBox="0 0 24 16" className="h-4 w-6 shrink-0" aria-hidden="true">
+      <rect x="1" y="1.5" width="14.5" height="13" rx="3" {...icon} />
+      <path d="m16.5 6.2 5.5-3.2v10l-5.5-3.2" {...icon} />
+    </svg>
+  );
+}
+
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="ml-1 size-[18px] shrink-0" aria-hidden="true">
+      <path d="M5.2 2.5h2.6l1.4 3.8-2 1.4a10 10 0 0 0 5.1 5.1l1.4-2 3.8 1.4v2.6a1.7 1.7 0 0 1-1.9 1.7C9.1 16 4 10.9 3.5 4.4a1.7 1.7 0 0 1 1.7-1.9Z" {...icon} />
+    </svg>
+  );
+}
+
+function Lock() {
+  return (
+    <svg viewBox="0 0 10 12" className="mt-[1px] h-2.5 w-2 shrink-0" aria-hidden="true">
+      <rect x="1" y="5" width="8" height="6" rx="1.2" fill="#e9c46a" />
+      <path d="M3 5V3.5a2 2 0 0 1 4 0V5" fill="none" stroke="#e9c46a" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
+function Plus() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-4 shrink-0" aria-hidden="true">
+      <path d="M8 1.5v13M1.5 8h13" {...icon} strokeWidth={2} />
+    </svg>
+  );
+}
+
+function Sticker() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-[15px]" aria-hidden="true">
+      <path d="M14.5 8.5V4a2.5 2.5 0 0 0-2.5-2.5H4A2.5 2.5 0 0 0 1.5 4v8A2.5 2.5 0 0 0 4 14.5h4.5l6-6Zm0 0h-3.5a2.5 2.5 0 0 0-2.5 2.5v3.5" {...icon} strokeWidth={1.5} />
+    </svg>
+  );
+}
+
+function Camera() {
+  return (
+    <svg viewBox="0 0 20 16" className="h-4 w-5 shrink-0" aria-hidden="true">
+      <path d="M2 4.5h3l1.5-2.5h7L15 4.5h3v9.5H2z" {...icon} />
+      <circle cx="10" cy="9" r="3" {...icon} />
     </svg>
   );
 }
 
 function Mic() {
   return (
-    <svg viewBox="0 0 12 18" className="h-4 w-3 text-white" aria-hidden="true">
-      <rect x="3" y="1" width="6" height="10" rx="3" fill="currentColor" />
-      <path d="M1 8.5a5 5 0 0 0 10 0M6 13.5V17" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <svg viewBox="0 0 12 18" className="h-[17px] w-3 shrink-0" aria-hidden="true">
+      <rect x="3" y="1" width="6" height="10" rx="3" {...icon} />
+      <path d="M1 8.5a5 5 0 0 0 10 0M6 13.5V17" {...icon} />
     </svg>
   );
 }
