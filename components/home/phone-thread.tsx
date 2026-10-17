@@ -33,20 +33,20 @@ const STEP = 560;
 
 export function PhoneThread({ number }: { number: string }) {
   return (
-    <div className="animate-scale-in motion-reduce:animate-none relative mx-auto w-full max-w-[312px]">
-      <div className="relative rounded-[54px] bg-gradient-to-b from-[#3a3a3e] to-[#1c1c1e] p-[2px] shadow-2xl">
-        <div className="rounded-[52px] bg-black p-[9px]">
-          <div className="relative overflow-hidden rounded-[44px] bg-[#0e0e0e]">
+    <div className="animate-scale-in motion-reduce:animate-none relative mx-auto w-full max-w-[330px]">
+      <div className="relative rounded-[44px] bg-gradient-to-b from-[#3a3a3e] to-[#1c1c1e] p-[2px] shadow-2xl">
+        <div className="rounded-[42px] bg-black p-[7px]">
+          <div className="relative overflow-hidden rounded-[36px] bg-[#0e0e0e]">
             <StatusBar />
 
-            <div className="flex items-center gap-2.5 border-b border-white/[0.06] bg-[#141414] px-3 pt-1 pb-2.5">
+            <div className="flex items-center gap-2.5 border-b border-white/[0.06] bg-[#141414] px-3 pt-0.5 pb-2">
               <Chevron />
               <Image
                 src={logo}
                 alt=""
                 width={36}
                 height={36}
-                className="size-9 shrink-0 rounded-full"
+                className="size-8 shrink-0 rounded-full"
               />
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-[14px] font-semibold text-white">
@@ -60,29 +60,26 @@ export function PhoneThread({ number }: { number: string }) {
             </div>
 
             <div
-              className="flex min-h-[392px] flex-col gap-1.5 px-2.5 py-3"
+              className="flex flex-col gap-1.5 px-2.5 py-2.5"
               style={{
                 backgroundImage:
                   "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.025) 0 2px, transparent 3px), radial-gradient(circle at 70% 80%, rgba(255,255,255,0.02) 0 3px, transparent 4px)",
                 backgroundSize: "46px 46px, 62px 62px",
               }}
             >
-              <span className="mb-1 self-center rounded-full bg-[#1e1e1e] px-3 py-0.5 text-[11px] font-semibold text-white/50">
-                Today
-              </span>
               {THREAD.map((m, i) => (
                 <Bubble key={i} msg={m} delay={300 + i * STEP} />
               ))}
             </div>
 
-            <div className="flex items-center gap-2 bg-[#101010] px-3 pt-2.5 pb-7">
+            <div className="flex items-center gap-2 bg-[#101010] px-3 pt-2 pb-5">
               <span className="text-[22px] leading-none font-light text-white">+</span>
-              <span className="h-8 flex-1 rounded-full bg-[#222]" />
-              <span className="flex size-8 items-center justify-center rounded-full bg-[#2ccb5a]">
+              <span className="h-7 flex-1 rounded-full bg-[#222]" />
+              <span className="flex size-7 items-center justify-center rounded-full bg-[#2ccb5a]">
                 <Mic />
               </span>
             </div>
-            <span className="absolute bottom-2 left-1/2 h-[4px] w-28 -translate-x-1/2 rounded-full bg-white/80" />
+            <span className="absolute bottom-1.5 left-1/2 h-[4px] w-24 -translate-x-1/2 rounded-full bg-white/80" />
           </div>
         </div>
       </div>
@@ -122,7 +119,7 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
   /* what the launcher sends: a picture with the name and ticker under it */
   if (msg.kind === "picture") {
     return (
-      <div className={cn(card, "w-[56%] self-end rounded-2xl bg-[#16482e] p-1")} style={style}>
+      <div className={cn(card, "w-[52%] self-end rounded-2xl bg-[#16482e] p-1")} style={style}>
         <Image
           src={logo}
           alt=""
@@ -130,10 +127,13 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
           height={220}
           className="aspect-square w-full rounded-xl"
         />
-        <div className="px-2 pt-1.5 pb-1">
-          <span className="block text-[13px] leading-snug text-white">NAME: Fornum</span>
-          <span className="block text-[13px] leading-snug text-white">TICKER: FORNUM</span>
-          <Meta mine />
+        <div className="flex items-end justify-between gap-1 px-1.5 pt-1 pb-0.5">
+          <span className="text-[11px] leading-snug whitespace-nowrap text-white">
+            NAME: Fornum
+            <br />
+            TICKER: FORNUM
+          </span>
+          <Meta mine inline />
         </div>
       </div>
     );
@@ -142,11 +142,11 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
   /* the reply that ends the launch: the mint is live */
   if (msg.kind === "launched") {
     return (
-      <div className={cn(card, "max-w-[94%] self-start rounded-2xl bg-[#242626] px-3 py-2")} style={style}>
-        <span className="block text-[13px] leading-snug whitespace-nowrap text-white">
+      <div className={cn(card, "flex max-w-[96%] items-end gap-2 self-start rounded-2xl bg-[#242626] px-3 py-1.5")} style={style}>
+        <span className="text-[12px] leading-snug whitespace-nowrap text-white">
           Launched pump.fun/xxxxxxxxxxxx
         </span>
-        <Meta />
+        <Meta inline />
       </div>
     );
   }
@@ -154,10 +154,12 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
   /* and where the fees collect, to be claimed on the site */
   if (msg.kind === "fees") {
     return (
-      <div className={cn(card, "max-w-[86%] self-start rounded-2xl bg-[#242626] px-3 py-2")} style={style}>
-        <span className="block text-[13px] leading-snug text-white">Your launch wallet:</span>
-        <span className="block text-[13px] leading-snug text-white">[xxxxxxxxx]</span>
-        <span className="block text-[13px] leading-snug text-white">
+      <div className={cn(card, "max-w-[90%] self-start rounded-2xl bg-[#242626] px-3 py-1.5")} style={style}>
+        <span className="block text-[12px] leading-snug text-white">
+          Your launch wallet:
+          <br />
+          [xxxxxxxxx]
+          <br />
           Fees are yours, claim them on the site
         </span>
         <Meta />
@@ -170,21 +172,26 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
     <div
       className={cn(
         card,
-        "max-w-[78%] rounded-2xl px-3 py-1.5",
+        "flex max-w-[92%] items-end gap-2 rounded-2xl px-3 py-1.5",
         mine ? "self-end bg-[#16482e]" : "self-start bg-[#242626]",
       )}
       style={style}
     >
-      <span className="text-[13px] leading-snug text-white">{msg.text}</span>
-      <Meta mine={mine} />
+      <span className="text-[12px] leading-snug whitespace-nowrap text-white">{msg.text}</span>
+      <Meta mine={mine} inline />
     </div>
   );
 }
 
 /** Time, and the blue read ticks on what the launcher sent */
-function Meta({ mine = false }: { mine?: boolean }) {
+function Meta({ mine = false, inline = false }: { mine?: boolean; inline?: boolean }) {
   return (
-    <span className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-white/45">
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-end gap-1 text-[10px] leading-none text-white/45",
+        inline ? "translate-y-0.5" : "mt-0.5",
+      )}
+    >
       17:22
       {mine && (
         <svg viewBox="0 0 16 10" className="h-2.5 w-4" aria-hidden="true">
@@ -197,9 +204,9 @@ function Meta({ mine = false }: { mine?: boolean }) {
 
 function StatusBar() {
   return (
-    <div className="relative flex h-11 items-center justify-between px-7 text-white">
-      <span className="tnum text-[14px] font-semibold">17:22</span>
-      <span className="absolute top-2.5 left-1/2 h-[26px] w-[90px] -translate-x-1/2 rounded-full bg-black" />
+    <div className="relative flex h-9 items-center justify-between px-6 text-white">
+      <span className="tnum text-[13px] font-semibold">17:22</span>
+      <span className="absolute top-2 left-1/2 h-[22px] w-[78px] -translate-x-1/2 rounded-full bg-black" />
       <span className="flex items-center gap-1.5">
         <svg viewBox="0 0 18 12" className="h-2.5 w-4" aria-hidden="true">
           {[0, 1, 2, 3].map((i) => (
