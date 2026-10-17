@@ -4,6 +4,8 @@ import { createToken } from "@/lib/db/store";
 import { maskPhone, normalizePhone } from "@/lib/auth/verify";
 import { balanceOf, isValidAddress, launchWalletAddress } from "@/lib/solana/wallet";
 import { addressAt } from "@/lib/solana/launch-wallets";
+import { issueLink } from "@/lib/auth/sign-in-links";
+import { launchReply } from "@/lib/replies";
 
 /**
  * The operator records a launch they just did by hand
@@ -117,10 +119,29 @@ export async function POST(request: Request) {
     holders: 0,
   });
 
+  /**
+   * The reply for the thread, with the mint and a way in
+   *
+   * When the fees are the launcher's own, the reply carries a one time sign in
+   * link for their number, so the first visit needs no code at all. When they
+   * go to somebody else, that person has never written to us, so they sign in
+   * from the site instead
+   */
+  const link = feesTo
+    ? null
+    : new URL(await issueLink(token.ownerHash, token.ownerMasked), request.url).toString();
+
   return Response.json({
     id: token.id,
     mint: token.mint,
     launchWallet: token.launchWallet,
     baselineLamports: token.baselineLamports,
+    reply: launchReply({
+      name: token.name,
+      symbol: token.symbol,
+      mint: token.mint,
+      link,
+      feesToMasked: token.assigneeMasked ?? null,
+    }),
   });
 }

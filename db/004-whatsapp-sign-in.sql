@@ -1,8 +1,9 @@
 -- Sign in by writing to the Fornum number, and a payout wallet per number
 --
 -- Run once against DATABASE_URL. Replaces the sign in codes that were sent
--- out through a provider: now the visitor sends the code to us, so nothing is
--- billed per sign in. Nothing here holds a phone number in the clear.
+-- out through a provider: now the visitor sends the code to us and the
+-- operator confirms it, so nothing is billed per sign in. Nothing here holds
+-- a phone number in the clear.
 
 create table if not exists login_challenges (
   id            text primary key,

@@ -80,8 +80,9 @@ create index if not exists verify_attempts_phone
   on verify_attempts (phone_hash, created_at desc);
 
 -- Sign in by writing to the Fornum number. The visitor types a number, gets a
--- code, and sends it from that number; the webhook approves the challenge and
--- only the browser holding the matching secret can turn it into a session
+-- code, and sends it from that number; the operator confirms it in /admin with
+-- the number it came from, and only the browser holding the matching secret
+-- can turn it into a session
 create table if not exists login_challenges (
   id            text primary key,
   code          text unique not null,
@@ -101,3 +102,15 @@ create table if not exists accounts (
   wallet      text not null,
   updated_at  timestamptz not null default now()
 );
+
+-- One time sign in links the operator pastes into the WhatsApp thread, with
+-- the mint after a launch or on request. Only the token's hash is kept
+create table if not exists sign_in_links (
+  token_hash    text primary key,
+  phone_hash    text not null,
+  phone_masked  text not null,
+  expires_at    timestamptz not null,
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists sign_in_links_expires on sign_in_links (expires_at);

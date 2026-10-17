@@ -4,6 +4,7 @@ import { StatsControls } from "@/components/admin/stats-controls";
 import { LaunchRecorder } from "@/components/admin/launch-recorder";
 import { FeesRecorder } from "@/components/admin/fees-recorder";
 import { TokenRemover } from "@/components/admin/token-remover";
+import { SignInDesk } from "@/components/admin/sign-in-desk";
 import { launchFleet } from "@/lib/launch-fleet";
 import { Card } from "@/components/ui/primitives";
 import { siteConfig } from "@/lib/config";
@@ -77,6 +78,8 @@ export default async function AdminPage() {
             />
           </div>
         </Card>
+
+        <SignInDesk />
 
         <LaunchRecorder wallets={wallets} />
 

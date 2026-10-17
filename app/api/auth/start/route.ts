@@ -1,8 +1,6 @@
 import { cookies } from "next/headers";
 import {
   chatLink,
-  isConfigured,
-  isStub,
   maskPhone,
   messageFor,
   normalizePhone,
@@ -15,17 +13,11 @@ import { CHALLENGE_COOKIE } from "@/lib/auth/challenge-cookie";
 /**
  * Hands the visitor a code to send from the number they typed
  *
- * Nothing goes out from here. The secret that will redeem the challenge is
- * kept in an httpOnly cookie, the code and the chat link go back to the page
+ * Nothing goes out from here. The visitor sends the code, the operator
+ * confirms it in /admin. The secret that will redeem the challenge is kept in
+ * an httpOnly cookie, the code and the chat link go back to the page
  */
 export async function POST(request: Request) {
-  if (!isConfigured() && !isStub()) {
-    return Response.json(
-      { error: "Sign in is not connected on this deployment yet" },
-      { status: 503 },
-    );
-  }
-
   const { phone } = (await request.json()) as { phone?: string };
 
   const normalized = normalizePhone(phone ?? "");
@@ -54,6 +46,5 @@ export async function POST(request: Request) {
     message: messageFor(challenge.code),
     link: chatLink(challenge.code),
     expiresAt: challenge.expiresAt,
-    stub: isStub(),
   });
 }

@@ -6,6 +6,7 @@ import { TokenMark } from "@/components/ui/token-mark";
 import { CheckIcon, WhatsAppIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { WalletPicker } from "@/components/admin/wallet-picker";
+import { ReplyBox } from "@/components/admin/sign-in-desk";
 import type { LaunchWallet } from "@/lib/launch-fleet";
 
 const KEY = "fornum:admin-token";
@@ -32,6 +33,7 @@ export function LaunchRecorder({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
+  const [reply, setReply] = useState("");
 
   useEffect(() => {
     try {
@@ -54,6 +56,7 @@ export function LaunchRecorder({
 
     setBusy(true);
     setError("");
+    setReply("");
     try {
       window.localStorage.setItem(KEY, secret);
     } catch {
@@ -83,8 +86,9 @@ export function LaunchRecorder({
       return;
     }
 
-    const body = (await res.json()) as { id: string };
+    const body = (await res.json()) as { id: string; reply: string };
     setSaved(body.id);
+    setReply(body.reply);
     setMint("");
     setName("");
     setSymbol("");
@@ -99,8 +103,9 @@ export function LaunchRecorder({
           Record a launch
         </h2>
         <p className="text-sm text-secondary">
-          Deploy the mint on pump.fun from the launch wallet, then put it here
-          so the site can show it and the owner can claim
+          Deploy the mint on pump.fun from the launch wallet, then put it here.
+          You get the reply for the chat: the mint, and a link that signs the
+          owner in to claim
         </p>
       </div>
 
@@ -195,6 +200,8 @@ export function LaunchRecorder({
             </span>
           )}
         </div>
+
+        {reply && <ReplyBox text={reply} />}
       </form>
     </Card>
   );

@@ -6,12 +6,22 @@ import { Card } from "@/components/ui/primitives";
 import { AccountWallet } from "@/components/wallet/account-wallet";
 import { readSession } from "@/lib/auth/session";
 import { getWallet } from "@/lib/db/store";
+import { chatLink, peekChallenge } from "@/lib/auth/verify";
+import { CHALLENGE_COOKIE } from "@/lib/auth/challenge-cookie";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 export default async function SignInPage() {
   const session = await readSession();
   const wallet = session ? await getWallet(session.sub) : null;
+
+  // a code this browser asked for and is still waiting on
+  const [id, secret] = ((await cookies()).get(CHALLENGE_COOKIE)?.value ?? "").split(".");
+  const waiting = !session && id && secret ? await peekChallenge(id, secret) : null;
+  const resume = waiting
+    ? { code: waiting.code, link: chatLink(waiting.code), masked: waiting.masked }
+    : null;
 
   return (
     <>
@@ -44,7 +54,7 @@ export default async function SignInPage() {
             </Link>
           </Card>
         ) : (
-          <SignInForm />
+          <SignInForm resume={resume} />
         )}
 
         <Card className="animate-section-in flex h-fit flex-col gap-2 p-5 text-xs text-secondary">
@@ -54,9 +64,9 @@ export default async function SignInPage() {
             display. The number itself is not stored in the cookie
           </p>
           <p>
-            Signing in is how a number proves it is yours: WhatsApp has already
-            checked who sent the message, so only the number a token was
-            launched from can claim what it earned
+            Signing in is how a number proves it is yours: we confirm the code
+            only when it arrives from the number you typed, so only the number
+            a token was launched from can claim what it earned
           </p>
         </Card>
       </section>

@@ -1,27 +1,26 @@
 import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
 import { sql } from "@/lib/db/client";
-import { hashPhone } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config";
-import { isConfigured as whatsappConfigured } from "@/lib/whatsapp/cloud";
 
 /**
  * Proving a number is yours by writing from it
  *
- * Instead of sending a code out through a paid provider, the site hands the
- * visitor a code and a wa.me link to the Fornum number. They send it, the
- * WhatsApp webhook sees a message from that number carrying that code, and the
- * challenge is approved. WhatsApp has already checked who the sender is, so the
- * message itself is the proof, and an inbound message costs nothing.
+ * The site hands the visitor a code and a wa.me link to the Fornum number.
+ * They send it, the operator sees it arrive in the WhatsApp Business app like
+ * any launch, and confirms it in /admin by typing the number it came from.
+ * WhatsApp has already checked who the sender is, so the message is the proof,
+ * and nothing here talks to WhatsApp or to any paid provider.
  *
  * Two things tie it down:
  *
- * - the message has to come from the number typed on the site, so a code sent
- *   from somebody else's phone approves nothing
+ * - the confirmation carries the sender's number, and it has to hash to the
+ *   number typed on the site, so a code sent from somebody else's phone
+ *   approves nothing
  * - only the browser that asked holds the secret that turns an approved
  *   challenge into a session, so a code read over a shoulder is useless
  *
- * Without a WhatsApp line configured, development approves a challenge on the
- * first check so the flow can be walked locally. Production refuses instead.
+ * A person confirms, so a challenge lives for a day rather than minutes, and
+ * the sign in page picks up where it left off when the visitor comes back
  */
 
 /** Digits only, with a leading plus. Anything else is not a number we can dial */
@@ -37,16 +36,7 @@ export function maskPhone(phone: string) {
   return `${head} ••• ${tail}`;
 }
 
-export function isConfigured() {
-  return whatsappConfigured();
-}
-
-/** Local walkthrough without a line, never in production */
-export function isStub() {
-  return !isConfigured() && process.env.NODE_ENV !== "production";
-}
-
-const TTL_MINUTES = 10;
+const TTL_HOURS = 24;
 
 /** No 0/O, 1/I/L, so a code read off a screen is typed back right */
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -56,6 +46,12 @@ function newCode() {
   let code = "";
   for (let i = 0; i < CODE_LENGTH; i++) code += ALPHABET[randomInt(ALPHABET.length)];
   return code;
+}
+
+/** What the operator types back, forgiving about case and stray spaces */
+export function cleanCode(input: string) {
+  const code = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return code.length === CODE_LENGTH ? code : null;
 }
 
 function sha(value: string) {
@@ -71,21 +67,6 @@ export function chatLink(code: string) {
   return `https://wa.me/${siteConfig.whatsapp.e164}?text=${encodeURIComponent(messageFor(code))}`;
 }
 
-/**
- * Pulls a code out of what the visitor sent
- *
- * Only the prefilled form or a message that is the code and nothing else. A
- * launch message is full of six letter words, and any of them would otherwise
- * read as a code
- */
-export function codeIn(text: string) {
-  const upper = text.trim().toUpperCase();
-  const pattern = `[${ALPHABET}]{${CODE_LENGTH}}`;
-  const labelled = upper.match(new RegExp(`FORNUM,?\\s+CODE\\s+(${pattern})\\b`));
-  if (labelled) return labelled[1];
-  return new RegExp(`^${pattern}$`).test(upper) ? upper : null;
-}
-
 type Challenge = {
   id: string;
   code: string;
@@ -94,10 +75,12 @@ type Challenge = {
   browserHash: string;
   status: "pending" | "approved";
   expiresAt: number;
+  createdAt: number;
 };
 
 declare global {
-  // the webhook and the sign in routes can be separate module graphs in dev
+  // pages, route handlers and the admin desk can be separate module graphs in
+  // dev, so without a database they all have to read the same map
   var __fornumChallenges: Map<string, Challenge> | undefined;
 }
 
@@ -122,7 +105,7 @@ export async function startChallenge(
 ): Promise<StartedChallenge> {
   const id = randomUUID();
   const secret = randomBytes(24).toString("base64url");
-  const expiresAt = Date.now() + TTL_MINUTES * 60_000;
+  const expiresAt = Date.now() + TTL_HOURS * 3_600_000;
 
   if (!sql) {
     sweepMemory();
@@ -136,6 +119,7 @@ export async function startChallenge(
       browserHash: sha(secret),
       status: "pending",
       expiresAt,
+      createdAt: Date.now(),
     });
     return { id, code, secret, expiresAt };
   }
@@ -160,47 +144,98 @@ export async function startChallenge(
   }
 }
 
+export type PendingSignIn = { code: string; masked: string; createdAt: string };
+
+/** What is waiting for the operator, newest first */
+export async function listPending(): Promise<PendingSignIn[]> {
+  if (!sql) {
+    sweepMemory();
+    return [...memory.values()]
+      .filter((c) => c.status === "pending")
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((c) => ({
+        code: c.code,
+        masked: c.phoneMasked,
+        createdAt: new Date(c.createdAt).toISOString(),
+      }));
+  }
+
+  const rows = await sql<{ code: string; phone_masked: string; created_at: Date }[]>`
+    select code, phone_masked, created_at from login_challenges
+     where status = 'pending' and expires_at > now()
+     order by created_at desc
+     limit 100
+  `;
+  return rows.map((r) => ({
+    code: r.code,
+    masked: r.phone_masked,
+    createdAt: r.created_at.toISOString(),
+  }));
+}
+
 export type Approval =
-  | { ok: true }
-  | { ok: false; reason: "no-code" | "unknown" | "wrong-number" };
+  | { ok: true; masked: string }
+  | { ok: false; reason: "unknown" | "wrong-number" };
 
 /**
- * Called by the webhook for every inbound text
+ * The operator confirms a code they saw arrive, with the number it came from
  *
- * A message without a code is an ordinary message for the operator and is
- * left alone. A code from a number other than the one typed on the site
- * approves nothing
+ * The number is hashed and compared, never stored, and a mismatch approves
+ * nothing: the code was asked for with one number and sent from another
  */
-export async function approveFromMessage(
-  fromPhone: string,
-  text: string,
+export async function approveCode(
+  code: string,
+  senderPhoneHash: string,
 ): Promise<Approval> {
-  const code = codeIn(text);
-  if (!code) return { ok: false, reason: "no-code" };
-
-  const fromHash = hashPhone(fromPhone);
-
   if (!sql) {
     sweepMemory();
     const c = [...memory.values()].find((x) => x.code === code);
     if (!c) return { ok: false, reason: "unknown" };
-    if (c.phoneHash !== fromHash) return { ok: false, reason: "wrong-number" };
+    if (c.phoneHash !== senderPhoneHash) return { ok: false, reason: "wrong-number" };
     c.status = "approved";
-    return { ok: true };
+    return { ok: true, masked: c.phoneMasked };
   }
 
-  const [row] = await sql<{ phone_hash: string }[]>`
-    select phone_hash from login_challenges
+  const [row] = await sql<{ phone_hash: string; phone_masked: string }[]>`
+    select phone_hash, phone_masked from login_challenges
      where code = ${code} and expires_at > now()
   `;
   if (!row) return { ok: false, reason: "unknown" };
-  if (row.phone_hash !== fromHash) return { ok: false, reason: "wrong-number" };
+  if (row.phone_hash !== senderPhoneHash) return { ok: false, reason: "wrong-number" };
 
   await sql`
     update login_challenges set status = 'approved'
-     where code = ${code} and phone_hash = ${fromHash}
+     where code = ${code} and phone_hash = ${senderPhoneHash}
   `;
-  return { ok: true };
+  return { ok: true, masked: row.phone_masked };
+}
+
+/**
+ * The code of a challenge this browser started and is still waiting on
+ *
+ * Lets the sign in page show the same code again after the visitor closed the
+ * tab, since a person may take a while to confirm it
+ */
+export async function peekChallenge(
+  id: string,
+  secret: string,
+): Promise<{ code: string; masked: string } | null> {
+  const browserHash = sha(secret);
+
+  if (!sql) {
+    sweepMemory();
+    const c = memory.get(id);
+    return c && c.browserHash === browserHash && c.status === "pending"
+      ? { code: c.code, masked: c.phoneMasked }
+      : null;
+  }
+
+  const [row] = await sql<{ code: string; phone_masked: string }[]>`
+    select code, phone_masked from login_challenges
+     where id = ${id} and browser_hash = ${browserHash}
+       and status = 'pending' and expires_at > now()
+  `;
+  return row ? { code: row.code, masked: row.phone_masked } : null;
 }
 
 export type Redeemed =
@@ -225,17 +260,9 @@ export async function redeemChallenge(
     sweepMemory();
     const c = memory.get(id);
     if (!c || c.browserHash !== browserHash) return { status: "gone" };
-    if (c.status !== "approved" && isStub()) c.status = "approved";
     if (c.status !== "approved") return { status: "pending" };
     memory.delete(id);
     return { status: "approved", phoneHash: c.phoneHash, phoneMasked: c.phoneMasked };
-  }
-
-  if (isStub()) {
-    await sql`
-      update login_challenges set status = 'approved'
-       where id = ${id} and browser_hash = ${browserHash}
-    `;
   }
 
   const [row] = await sql<

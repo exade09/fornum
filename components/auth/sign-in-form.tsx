@@ -9,22 +9,26 @@ import { cn } from "@/lib/cn";
 
 type Stage = "phone" | "send" | "wallet" | "done";
 
-type Started = { code: string; message: string; link: string; stub: boolean };
+type Started = { code: string; link: string; masked?: string };
 
-const POLL_MS = 2000;
+const POLL_MS = 3000;
 
 /**
  * Number, message, wallet
  *
- * The visitor types their number, sends the code it gives them from that
- * number on WhatsApp, and the page notices on its own. Then they link the
- * wallet their fees should go to, which is skipped when one is already linked
+ * The visitor types their number and sends the code it gives them from that
+ * number on WhatsApp. A person at Fornum confirms it, and the page notices on
+ * its own. Then they link the wallet their fees should go to, which is skipped
+ * when one is already linked.
+ *
+ * A code that is still waiting comes back in `resume`, so closing the tab
+ * while the operator gets to it loses nothing
  */
-export function SignInForm() {
+export function SignInForm({ resume }: { resume: Started | null }) {
   const router = useRouter();
-  const [stage, setStage] = useState<Stage>("phone");
+  const [stage, setStage] = useState<Stage>(resume ? "send" : "phone");
   const [phone, setPhone] = useState("");
-  const [started, setStarted] = useState<Started | null>(null);
+  const [started, setStarted] = useState<Started | null>(resume);
   const [masked, setMasked] = useState("");
   const [wallet, setWallet] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -54,7 +58,7 @@ export function SignInForm() {
     setStage("send");
   }
 
-  // wait for the message to arrive at the webhook
+  // wait for the operator to confirm the message
   useEffect(() => {
     if (stage !== "send") return;
     let stopped = false;
@@ -124,7 +128,7 @@ export function SignInForm() {
         <p className="text-sm text-secondary">
           {stage === "wallet"
             ? `${masked} is confirmed. Pick the wallet the fees should go to, you can change it later`
-            : "No password and no code to wait for. You send one message from your WhatsApp and you are in"}
+            : "No password and no SMS. You send one message from your WhatsApp, we confirm it, and you are in"}
         </p>
       </div>
 
@@ -166,7 +170,7 @@ export function SignInForm() {
         <div className="animate-fade-slide-up motion-reduce:animate-none flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold tracking-wider text-secondary">
-              SEND THIS FROM {phone.trim()}
+              SEND THIS FROM {phone.trim() || started.masked}
             </span>
             <span className="tnum w-fit rounded-xl border border-primary/[0.06] bg-field px-5 py-3 font-mono text-2xl tracking-[0.3em] text-primary">
               {started.code}
@@ -185,15 +189,14 @@ export function SignInForm() {
 
           <p className="flex items-center gap-2 text-xs text-secondary">
             <span className="size-2 animate-pulse rounded-full bg-brand motion-reduce:animate-none" />
-            Waiting for your message. This page moves on by itself
+            Waiting for us to confirm your message. This page moves on by
+            itself
           </p>
 
-          {started.stub && (
-            <p className="rounded-lg border border-queued/25 bg-queued/[0.07] px-3 py-2 text-xs text-queued">
-              No WhatsApp line connected, so this local build signs you in
-              without the message
-            </p>
-          )}
+          <p className="text-xs text-secondary">
+            A person at Fornum confirms every code, usually within minutes. You
+            can close this page and come back, the code stays valid for a day
+          </p>
 
           <button
             type="button"
