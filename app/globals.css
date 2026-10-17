@@ -248,6 +248,22 @@
   }
 }
 
+@keyframes typingWindow {
+  0% {
+    opacity: 0;
+    max-height: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+    max-height: 40px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+  }
+}
+
 @keyframes cardIn {
   0% {
     opacity: 0;
@@ -504,6 +520,11 @@
 
 @utility animate-card-in {
   animation: 0.38s var(--ease-decel) both cardIn;
+}
+
+/* shown for one step of a thread and then folded away, like a typing bubble */
+@utility animate-typing-window {
+  animation: 0.56s linear both typingWindow;
 }
 
 @utility animate-pop-in {
