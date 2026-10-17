@@ -41,7 +41,8 @@ export default function LaunchPage() {
         <div className="flex flex-col gap-8">
           <NumberPlate display={display} e164={e164} />
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* grows to the height of the thread beside it, so both columns end on one line */}
+          <div className="grid flex-1 auto-rows-fr gap-3 sm:grid-cols-2">
             {RULES.map((r, i) => (
               <Card
                 key={r.t}
