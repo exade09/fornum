@@ -1,55 +1,49 @@
+import Image, { type StaticImageData } from "next/image";
 import type { SVGProps } from "react";
+import phantom from "@/public/wallets/phantom.png";
+import solflare from "@/public/wallets/solflare.jpg";
+import backpack from "@/public/wallets/backpack.png";
+import { cn } from "@/lib/cn";
 
 type Props = SVGProps<SVGSVGElement>;
 
-/** Wallet marks drawn inline so nothing depends on a remote asset */
-
-export function PhantomMark(props: Props) {
+/**
+ * Phantom, Solflare and Backpack use their own published marks, served from
+ * public/wallets. Static imports, so Next knows the size and serves the right
+ * resolution. The square artwork is rounded by whatever className the caller
+ * passes, the same as the drawn marks below
+ */
+function WalletImage({
+  src,
+  className,
+}: {
+  src: StaticImageData;
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" {...props}>
-      <rect width="32" height="32" rx="9" fill="#AB9FF2" />
-      <path
-        d="M25.2 16.1c0 4.9-4 8.9-8.9 8.9H8.9c-1 0-1.6-1.1-1-1.9 1-1.4 2.4-3.4 3-4.6.2-.4.7-.5 1-.2.6.5 1.6 1.1 2.6 1.1 1.9 0 3-1.3 3-3.3v-2c0-.4.3-.7.7-.7h1.5c.4 0 .7.3.7.7v2c0 .5.4.9.9.9s.9-.4.9-.9v-2c0-.4.3-.7.7-.7h1.5c.4 0 .7.3.7.7v2Z"
-        fill="#fff"
-      />
-      <circle cx="12.6" cy="13.3" r="1.5" fill="#AB9FF2" />
-      <circle cx="17.4" cy="13.3" r="1.5" fill="#AB9FF2" />
-    </svg>
+    <Image
+      src={src}
+      alt=""
+      width={64}
+      height={64}
+      className={cn("object-cover", className)}
+    />
   );
 }
 
-export function SolflareMark(props: Props) {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" {...props}>
-      <rect width="32" height="32" rx="9" fill="#101010" />
-      <path
-        d="M16 5.5c1.6 4.2 3.3 6.4 7 7.6-3.7 1.2-5.4 3.4-7 7.6-1.6-4.2-3.3-6.4-7-7.6 3.7-1.2 5.4-3.4 7-7.6Z"
-        fill="#FFC10B"
-      />
-      <path
-        d="M16 19.4c.9 2.4 1.9 3.6 4 4.3-2.1.7-3.1 1.9-4 4.3-.9-2.4-1.9-3.6-4-4.3 2.1-.7 3.1-1.9 4-4.3Z"
-        fill="#FE8F13"
-      />
-    </svg>
-  );
+export function PhantomMark({ className }: Props) {
+  return <WalletImage src={phantom} className={className} />;
 }
 
-export function BackpackMark(props: Props) {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" {...props}>
-      <rect width="32" height="32" rx="9" fill="#E33E3F" />
-      <path
-        d="M11.8 11.4V9.8a4.2 4.2 0 0 1 8.4 0v1.6h1.2c1.4 0 2.5 1.1 2.5 2.5v2.3H8.1v-2.3c0-1.4 1.1-2.5 2.5-2.5h1.2Zm2.1 0h4.2V9.8a2.1 2.1 0 1 0-4.2 0v1.6Z"
-        fill="#fff"
-      />
-      <path
-        d="M8.1 18.3h15.8v3.4c0 1.4-1.1 2.5-2.5 2.5H10.6a2.5 2.5 0 0 1-2.5-2.5v-3.4Z"
-        fill="#fff"
-        opacity=".85"
-      />
-    </svg>
-  );
+export function SolflareMark({ className }: Props) {
+  return <WalletImage src={solflare} className={className} />;
 }
+
+export function BackpackMark({ className }: Props) {
+  return <WalletImage src={backpack} className={className} />;
+}
+
+/** Marks without an official file are drawn inline, so they need no remote asset */
 
 export function LedgerMark(props: Props) {
   return (
