@@ -87,7 +87,7 @@ export function PhoneThread({ number }: { number: string }) {
             <span className="mx-3 mb-1 flex items-start justify-center gap-1 rounded-md bg-[#201e17] px-2.5 py-1.5 text-center text-[9.5px] leading-snug text-[#e9c46a]">
               <Lock />
               Messages and calls are end-to-end encrypted. Only people in this
-              chat can read them
+              chat can read, listen to, or share them. Learn more
             </span>
             {THREAD.map((m, i) => (
               <Bubble key={i} msg={m} delay={300 + i * STEP} />
