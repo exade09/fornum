@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         {
           title: "What goes on chain",
           body: [
-            "The token account stores the mint, the launch wallet, a salted hash of the number the launch came from, and the amounts collected and claimed. The number itself never goes on chain",
+            "The coin, the wallet it was launched from and every payout are public Solana records. Neither the number nor its hash goes on chain: the salted hash that ties the thread to the token is kept in Fornum's own database",
           ],
         },
         {
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         {
           title: "Removal",
           body: [
-            "Ask in the thread and we delete the number and the conversation. Tokens already launched stay on chain because they cannot be deleted, but they only ever carried the hash",
+            "Ask in the thread and we delete the number and the conversation. Tokens already launched stay on chain because they cannot be deleted, but they never carried the number",
           ],
         },
       ]}

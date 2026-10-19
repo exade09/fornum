@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config";
 
+const DESCRIPTION =
+  "How Fornum works: one message launches a token, 80% of its creator fees are yours, and you claim them with the number you launched from";
+
 export const metadata: Metadata = {
   title: "Docs",
-  description:
-    "How Fornum works: one message launches a token, its creator fees split on chain, and you claim your share with the number you launched from",
+  description: DESCRIPTION,
+  // what a link preview shows, in Telegram and elsewhere
+  openGraph: {
+    siteName: "Fornum",
+    title: "Docs — Fornum",
+    description: DESCRIPTION,
+    type: "website",
+    locale: "en_US",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Fornum" }],
+  },
 };
 
 /** The path a launch takes, from a message to money in a wallet */
@@ -30,7 +41,7 @@ const SECTIONS: Section[] = [
     title: "Overview",
     body: [
       "Fornum turns a WhatsApp message into a token. You send a name, a ticker and a picture, the token is deployed on pump.fun, and the mint address comes back in the same thread",
-      "Every coin on pump.fun pays a share of each trade to whoever created it. That share is what Fornum is about. It is split on chain the moment the coin is made, most of it to you, and you take your part from this site with the number you launched from",
+      "Every coin on pump.fun pays a share of each trade to whoever created it. That share is what Fornum is about. Eighty percent of it is yours, and you take it from this site with the number you launched from",
       "There is no app to install, no wallet to connect and no account to create. The thread is the product, and the site is where the money is",
     ],
   },
@@ -63,8 +74,8 @@ const SECTIONS: Section[] = [
     id: "split",
     title: "How the fees are split",
     body: [
-      "At launch the coin is given two fee recipients: a wallet that belongs to your launch, and the Fornum treasury. The split is eighty to twenty in your favour",
-      "This is not a promise in a document. It is written into the coin on chain, through pump.fun's own fee sharing, and then locked. After that nobody can change it, including us. Anyone can read it off the chain and check",
+      "Every coin is created from a launch wallet of its own, so pump.fun pays the coin's creator share to that wallet and nowhere else. Of everything the coin earns, eighty percent is yours and twenty percent is Fornum's",
+      "The split happens every time you claim, in the same Solana transaction: your part goes to the address you give, Fornum's part goes to Fornum. Every payout is on chain and listed on the token page",
     ],
     figure: "split",
   },
@@ -81,7 +92,7 @@ const SECTIONS: Section[] = [
     id: "where",
     title: "Where your fees sit",
     body: [
-      "Each launch gets a wallet of its own, and your eighty percent accrues to that wallet and nothing else. Two coins never share a wallet, so one person's fees can never be paid out of another person's coin",
+      "Each launch gets a wallet of its own, and the coin's creator fees accrue to that wallet and nothing else. Two coins never share a wallet, so one person's fees can never be paid out of another person's coin",
       "The number on your token page is read straight from that wallet, not from a figure somebody typed in. What it shows is what is actually there",
     ],
   },
@@ -97,7 +108,7 @@ const SECTIONS: Section[] = [
     id: "claiming",
     title: "Claiming",
     body: [
-      "Open your token and paste any Solana address. The claim sends what has built up to that address and leaves the transaction on the token page, so there is a public record of every payout",
+      "Open your token and paste any Solana address. The claim sends your eighty percent of what has built up to that address and leaves the transaction on the token page, so there is a public record of every payout",
       "You can claim as often or as rarely as you like. Fees keep accruing while you wait, and nothing expires",
     ],
   },
@@ -121,7 +132,7 @@ const SECTIONS: Section[] = [
     id: "privacy",
     title: "Privacy",
     body: [
-      "Your number is never written to the chain. What goes on chain and into your session is a salted hash of it, which cannot be turned back into the number",
+      "Your number is never written to the chain. What is stored, and what your session holds, is a salted hash of it, which cannot be turned back into the number",
       "The site shows a masked number anywhere a number appears, so the person holding a token's fees is identifiable to themselves and to nobody else",
       "The thread itself is read by the Fornum team, the same as any business chat. Send what a launch needs and nothing you would not want read",
     ],
@@ -154,9 +165,9 @@ export default function DocsPage() {
       </h1>
 
       <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-secondary">
-        One message launches a token. Its creator fees are split on chain the
-        moment it is made, eighty percent to you, and you claim your share here
-        with the number you sent the message from
+        One message launches a token. Eighty percent of its creator fees are
+        yours, and you claim them here with the number you sent the message
+        from
       </p>
 
       <nav className="mt-10" aria-label="Contents">
@@ -231,7 +242,7 @@ function SplitFigure() {
         </div>
       </div>
       <p className="mt-2 text-xs text-secondary">
-        Locked on chain at launch, unchangeable afterwards by anyone
+        Split at every claim, in the same transaction
       </p>
     </div>
   );
