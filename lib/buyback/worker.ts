@@ -21,6 +21,7 @@ import {
 } from "@/lib/buyback/ledger";
 import { inspectMint, programsReady, signBuyback } from "@/lib/buyback/market";
 import { scanDistributions } from "@/lib/buyback/scan";
+import { distributeAll, feesEnabled } from "@/lib/buyback/distribute-all";
 import { expired, judgeBuybackReceipt, judgeCreditReceipt, nextBudget } from "@/lib/buyback/rules";
 
 /**
@@ -269,6 +270,12 @@ export async function runBuybackPass(budgetMs = 45_000) {
   const { settings, problems, treasuryKey } = buybackConfig();
 
   try {
+    // pump.fun distributions first, so this pass can already read what they paid
+    if (feesEnabled() && treasuryKey && problems.length === 0) {
+      await distributeAll(treasuryKey, push, deadline - 20_000).catch((err) =>
+        push("distribute failed", err instanceof Error ? err.message : String(err)),
+      );
+    }
     await reconcileCredits(push);
     await scanDistributions(push, deadline - 15_000).catch((err) =>
       push("scan failed", err instanceof Error ? err.message : String(err)),

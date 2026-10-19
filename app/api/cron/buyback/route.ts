@@ -2,17 +2,21 @@ import { timingSafeEqual } from "node:crypto";
 import { runBuybackPass } from "@/lib/buyback/worker";
 
 /**
- * The daily safety net for the buyback, called by Vercel Cron (vercel.json)
+ * The buyback heartbeat
  *
- * Claims start a pass on their own and /admin has a button; this catches
- * whatever both missed. Vercel sends CRON_SECRET as a bearer token, and
- * without CRON_SECRET set the route refuses everyone
+ * One call runs two passes 30 seconds apart, so a scheduler calling it every
+ * minute (Vercel Cron on Pro, or any external cron) gives a pass every 30
+ * seconds: distribute what pump.fun holds for native coins, read the
+ * receipts, buy back and burn. Vercel's daily cron in vercel.json is the
+ * fallback on the free plan. CRON_SECRET goes as a bearer token (or ?key=
+ * for schedulers that cannot set headers); without it set, everyone is refused
  */
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
-  const given = request.headers.get("authorization") ?? "";
+  const key = new URL(request.url).searchParams.get("key");
+  const given = request.headers.get("authorization") ?? (key ? `Bearer ${key}` : "");
   const expected = `Bearer ${secret}`;
   if (
     !secret ||
@@ -21,6 +25,10 @@ export async function GET(request: Request) {
   ) {
     return Response.json({ error: "Not allowed" }, { status: 401 });
   }
-  const { log } = await runBuybackPass(50_000);
-  return Response.json({ log });
+  const started = Date.now();
+  const first = await runBuybackPass(25_000);
+  const wait = 30_000 - (Date.now() - started);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  const second = await runBuybackPass(25_000);
+  return Response.json({ log: [...first.log, ...second.log] });
 }
