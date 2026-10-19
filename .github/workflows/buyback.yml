@@ -1,7 +1,7 @@
 # Runs the buyback every 5 minutes: distribute what pump.fun holds for coins
 # with the split locked on chain, read the receipts, buy back and burn.
 # Each call runs two passes 30 s apart. Claims also start a pass on their own.
-# Needs the repository secret CRON_SECRET, the same value as on Vercel.
+# Needs the repository secret PASS_KEY; the site keeps only its SHA-256.
 name: buyback
 
 on:
@@ -20,9 +20,9 @@ jobs:
     steps:
       - name: Run a buyback pass
         env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRON_SECRET: ${{ secrets.PASS_KEY }}
         run: |
-          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET is not set in the repository secrets"; exit 1; fi
+          if [ -z "$CRON_SECRET" ]; then echo "PASS_KEY is not set in the repository secrets"; exit 1; fi
           # the repository is public, so only the status is printed, not the pass log
           code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 90 -H "Authorization: Bearer $CRON_SECRET" https://www.fornum.fun/api/cron/buyback)
           echo "status $code"

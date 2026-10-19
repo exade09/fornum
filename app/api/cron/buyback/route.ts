@@ -1,28 +1,38 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { runBuybackPass } from "@/lib/buyback/worker";
 
 /**
  * The buyback heartbeat
  *
- * One call runs two passes 30 seconds apart, so a scheduler calling it every
- * minute (Vercel Cron on Pro, or any external cron) gives a pass every 30
- * seconds: distribute what pump.fun holds for native coins, read the
- * receipts, buy back and burn. Vercel's daily cron in vercel.json is the
- * fallback on the free plan. CRON_SECRET goes as a bearer token (or ?key=
- * for schedulers that cannot set headers); without it set, everyone is refused
+ * One call runs two passes 30 seconds apart: distribute what pump.fun holds
+ * for native coins, read the receipts, buy back and burn. GitHub Actions calls
+ * it every 5 minutes (.github/workflows/buyback.yml), Vercel's cron once a day
+ * as a fallback, and claims start a pass on their own.
+ *
+ * Accepted keys: CRON_SECRET from the host, or the key kept as the PASS_KEY
+ * secret on GitHub, of which only the SHA-256 is here. The hash can be public:
+ * it does not give the key back. Anyone else is refused
  */
 export const maxDuration = 60;
 
-export async function GET(request: Request) {
+const PASS_KEY_SHA256 = "ed5efed0ce7f6e4e91b8be2c6573552816a873131886660bfaef9f2d10d7eb89";
+
+function same(a: Buffer, b: Buffer) {
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function allowed(request: Request) {
+  const header = request.headers.get("authorization") ?? "";
+  const key = header.startsWith("Bearer ") ? header.slice(7) : new URL(request.url).searchParams.get("key") ?? "";
+  if (!key) return false;
   const secret = process.env.CRON_SECRET;
-  const key = new URL(request.url).searchParams.get("key");
-  const given = request.headers.get("authorization") ?? (key ? `Bearer ${key}` : "");
-  const expected = `Bearer ${secret}`;
-  if (
-    !secret ||
-    given.length !== expected.length ||
-    !timingSafeEqual(Buffer.from(given), Buffer.from(expected))
-  ) {
+  if (secret && same(Buffer.from(key), Buffer.from(secret))) return true;
+  const digest = createHash("sha256").update(key).digest();
+  return same(digest, Buffer.from(PASS_KEY_SHA256, "hex"));
+}
+
+export async function GET(request: Request) {
+  if (!allowed(request)) {
     return Response.json({ error: "Not allowed" }, { status: 401 });
   }
   const started = Date.now();
