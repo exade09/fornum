@@ -41,7 +41,14 @@ const u64 = (info: AccountInfo<Buffer> | null, at: number) =>
 export type WalletFees = {
   /** what the launch wallet itself holds */
   walletLamports: number;
-  /** earned but still with pump.fun, not collected yet */
+  /**
+   * In the creator vaults. Those are per creator, not per coin, so when one
+   * wallet ever made two coins this part is shared between them
+   */
+  sharedLamports: number;
+  /** waiting on this coin's own curve and pool, which is this coin's alone */
+  ownLamports: number;
+  /** earned but still with pump.fun, not collected yet: shared plus own */
   uncollectedLamports: number;
 };
 
@@ -54,6 +61,7 @@ export type WalletFees = {
 export async function readWalletFees(
   launches: { wallet: string; mint: string }[],
 ): Promise<Map<string, WalletFees>> {
+  // keyed by mint, since one wallet can be behind more than one coin
   const out = new Map<string, WalletFees>();
   if (launches.length === 0) return out;
 
@@ -72,12 +80,15 @@ export async function readWalletFees(
 
   launches.forEach((l, n) => {
     const [wallet, vault, ammAta, curve, pool] = infos.slice(n * 5, n * 5 + 5);
-    const uncollected =
-      (vault ? Math.max(vault.lamports - EMPTY_RENT, 0) : 0) +
-      u64(ammAta, 64) + // token account amount
-      u64(curve, CURVE_CREATOR_FEE) +
-      u64(pool, POOL_CREATOR_FEES);
-    out.set(l.wallet, { walletLamports: wallet?.lamports ?? 0, uncollectedLamports: uncollected });
+    const shared =
+      (vault ? Math.max(vault.lamports - EMPTY_RENT, 0) : 0) + u64(ammAta, 64); // token account amount
+    const own = u64(curve, CURVE_CREATOR_FEE) + u64(pool, POOL_CREATOR_FEES);
+    out.set(l.mint, {
+      walletLamports: wallet?.lamports ?? 0,
+      sharedLamports: shared,
+      ownLamports: own,
+      uncollectedLamports: shared + own,
+    });
   });
   return out;
 }

@@ -25,6 +25,15 @@ export const FUNDED_TARGET = 15_000_000;
  */
 export const LAUNCH_COST = 11_690_000;
 
+/**
+ * How many coins the funding wallet may launch
+ *
+ * Every derived wallet launches exactly one. The funding wallet is allowed a
+ * second, for testing, on the understanding that its two coins share pump.fun's
+ * creator vaults and so their fees mix; see lib/tokens.ts for how they are split
+ */
+export const FUNDING_WALLET_LAUNCHES = 2;
+
 export type WalletState =
   /** funded, never used, safe to launch from */
   | "ready"
@@ -94,9 +103,12 @@ export async function launchFleet(
     // coins recorded on the old shared wallet carry no index but did use it
     const token = byIndex.get(index) ?? tokens.find((t) => t.launchWallet === address);
     const lamports = balances[n] ?? 0;
+    const launchedHere = tokens.filter((t) => t.launchWallet === address).length;
+    const spent =
+      index === FUNDING_INDEX ? launchedHere >= FUNDING_WALLET_LAUNCHES : Boolean(token);
 
     let state: WalletState;
-    if (token) state = "used";
+    if (spent) state = "used";
     else if (lamports >= LAUNCH_COST) state = "ready";
     else if (lamports > 0) state = "unrecorded";
     else state = "empty";

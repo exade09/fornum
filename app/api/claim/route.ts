@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     try {
       const waiting = (
         await readWalletFees([{ wallet: token.launchWallet, mint: token.mint }])
-      ).get(token.launchWallet);
+      ).get(token.mint);
       if (waiting && waiting.uncollectedLamports >= MIN_COLLECT_LAMPORTS) {
         await collectCreatorFees(signer, token.mint);
       }
