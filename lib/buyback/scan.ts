@@ -1,5 +1,6 @@
 import "server-only";
-import { PublicKey, type ParsedInstruction, type PartiallyDecodedInstruction } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
+import { fetchReceipt, type ReceiptIx } from "@/lib/solana/receipt";
 import bs58 from "bs58";
 import { PUMP_AMM_PROGRAM_ID, PUMP_FEE_PROGRAM_ID, PUMP_PROGRAM_ID, feeSharingConfigPda } from "@pump-fun/pump-sdk";
 import { connect } from "@/lib/solana/read";
@@ -32,22 +33,22 @@ const ALLOWED = new Set([
   PUMP_FEE_PROGRAM_ID.toBase58(),
 ]);
 
-type Ix = ParsedInstruction | PartiallyDecodedInstruction;
+type Ix = ReceiptIx;
 
 function isDistribute(ix: Ix, sharing: string) {
-  if (!("data" in ix) || !ix.programId.equals(PUMP_PROGRAM_ID)) return false;
+  if (!ix.data || ix.programId !== PUMP_PROGRAM_ID.toBase58()) return false;
   const disc = Buffer.from(bs58.decode(ix.data)).subarray(0, 8).toString("hex");
-  return DISTRIBUTE.has(disc) && ix.accounts.some((a) => a.toBase58() === sharing);
+  return DISTRIBUTE.has(disc) && (ix.accounts ?? []).includes(sharing);
 }
 
 /** Lamports the system program moved out of each address, top level and inner */
 function systemOutflows(all: Ix[]) {
   const out: Record<string, number> = {};
   for (const ix of all) {
-    if (!("parsed" in ix) || ix.program !== "system") continue;
-    const info = ix.parsed?.info ?? {};
+    if (!ix.parsed || ix.program !== "system") continue;
+    const info = (ix.parsed.info ?? {}) as Record<string, unknown>;
     const lamports = Number(info.lamports ?? 0);
-    const from = info.source ?? info.fundingAccount;
+    const from = (info.source ?? info.fundingAccount) as string | undefined;
     if (from && lamports > 0) out[from] = (out[from] ?? 0) + lamports;
   }
   return out;
@@ -102,28 +103,26 @@ export async function scanDistributions(push: (step: string, detail?: string) =>
     // the RPC answers newest first; read oldest first and stop at the first gap
     for (const s of [...sigs].reverse()) {
       if (Date.now() > deadline) break;
-      const tx = await connection
-        .getParsedTransaction(s.signature, { commitment: "finalized", maxSupportedTransactionVersion: 0 })
-        .catch(() => null);
-      if (!tx?.meta) break;
-      const top = tx.transaction.message.instructions as Ix[];
-      const inner = (tx.meta.innerInstructions ?? []).flatMap((x) => x.instructions as Ix[]);
+      const tx = await fetchReceipt(s.signature, "finalized").catch(() => null);
+      if (!tx) break;
+      const top = tx.instructions;
+      const inner = tx.inner;
       const topDist = top.filter((ix) => isDistribute(ix, sharing)).length;
       if (topDist === 0 && !inner.some((ix) => isDistribute(ix, sharing))) {
         newest = s.signature; // not a distribution, nothing to record
         continue;
       }
       const verdict = judgeDistribution({
-        err: tx.meta.err,
-        accountKeys: tx.transaction.message.accountKeys.map((k) => k.pubkey.toBase58()),
-        preBalances: tx.meta.preBalances,
-        postBalances: tx.meta.postBalances,
-        feeLamports: tx.meta.fee,
+        err: tx.err,
+        accountKeys: tx.accountKeys,
+        preBalances: tx.preBalances,
+        postBalances: tx.postBalances,
+        feeLamports: tx.fee,
         developer: policy.developer,
         treasury: policy.treasury,
         topLevelDistributes: topDist,
         innerDistributes: inner.filter((ix) => isDistribute(ix, sharing)).length,
-        unexpectedPrograms: top.map((ix) => ix.programId.toBase58()).filter((p) => !ALLOWED.has(p)),
+        unexpectedPrograms: top.map((ix) => ix.programId).filter((p) => !ALLOWED.has(p)),
         systemOutflows: systemOutflows([...top, ...inner]),
       });
       await recordDistributionCredit({

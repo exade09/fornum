@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { PublicKey, VersionedTransaction, type ParsedInstruction } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { connect } from "@/lib/solana/read";
+import { fetchReceipt } from "@/lib/solana/receipt";
 import { buybackConfig, onExpectedCluster, seal, unseal } from "@/lib/buyback/config";
 import {
   closeJob,
@@ -59,27 +60,18 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /* ------------------------------------------------------------------ */
 
 async function reconcileCredits(push: (s: string, d?: string) => void) {
-  const connection = connect();
   for (const c of await pendingCredits()) {
     try {
-      const tx = await connection.getTransaction(c.signature, {
-        commitment: "finalized",
-        maxSupportedTransactionVersion: 0,
-      });
-      if (!tx?.meta) {
+      const tx = await fetchReceipt(c.signature, "finalized");
+      if (!tx) {
         // not final yet, or the archive does not have it: keep it pending, never guess
         continue;
       }
-      const keys = tx.transaction.message
-        .getAccountKeys({ accountKeysFromLookups: tx.meta.loadedAddresses })
-        .keySegments()
-        .flat()
-        .map((k) => k.toBase58());
       const verdict = judgeCreditReceipt({
-        err: tx.meta.err,
-        accountKeys: keys,
-        preBalances: tx.meta.preBalances,
-        postBalances: tx.meta.postBalances,
+        err: tx.err,
+        accountKeys: tx.accountKeys,
+        preBalances: tx.preBalances,
+        postBalances: tx.postBalances,
         treasury: c.treasury,
         expectedLamports: c.expectedLamports,
       });
@@ -98,39 +90,36 @@ async function reconcileCredits(push: (s: string, d?: string) => void) {
 /** Reads the finalized receipt of a job's transaction and closes the job */
 async function settleFromReceipt(job: Job, owner: string, push: (s: string, d?: string) => void) {
   const connection = connect();
-  const tx = await connection.getParsedTransaction(job.signature!, {
-    commitment: "finalized",
-    maxSupportedTransactionVersion: 0,
-  });
-  if (!tx?.meta) return false;
+  const tx = await fetchReceipt(job.signature!, "finalized");
+  if (!tx) return false;
 
-  const keys = tx.transaction.message.accountKeys.map((k) => k.pubkey.toBase58());
+  const keys = tx.accountKeys;
   const treasuryAt = keys.indexOf(job.treasury);
   const mint = new PublicKey(job.mainMint);
   const facts = await inspectMint(connection, job.mainMint);
   const ata = getAssociatedTokenAddressSync(mint, new PublicKey(job.treasury), false, facts.tokenProgram).toBase58();
   const ataAt = keys.indexOf(ata);
 
-  const tokenAt = (list: typeof tx.meta.preTokenBalances) =>
-    BigInt(list?.find((b) => b.accountIndex === ataAt && b.mint === job.mainMint)?.uiTokenAmount.amount ?? "0");
+  const tokenAt = (list: typeof tx.preTokenBalances) =>
+    BigInt(list.find((b) => b.accountIndex === ataAt && b.mint === job.mainMint)?.uiTokenAmount.amount ?? "0");
 
-  const burns = tx.transaction.message.instructions
-    .filter((ix): ix is ParsedInstruction => "parsed" in ix)
+  const burns = tx.instructions
     .filter((ix) => ix.parsed?.type === "burnChecked" || ix.parsed?.type === "burn")
-    .filter((ix) => ix.parsed.info?.mint === job.mainMint && ix.parsed.info?.authority === job.treasury)
-    .map((ix) => BigInt(ix.parsed.info.tokenAmount?.amount ?? ix.parsed.info.amount));
+    .map((ix) => (ix.parsed!.info ?? {}) as Record<string, any>)
+    .filter((info) => info.mint === job.mainMint && info.authority === job.treasury)
+    .map((info) => BigInt(info.tokenAmount?.amount ?? info.amount));
 
   const verdict = judgeBuybackReceipt({
-    err: tx.meta.err,
-    treasuryPre: tx.meta.preBalances[treasuryAt],
-    treasuryPost: tx.meta.postBalances[treasuryAt],
-    feeLamports: tx.meta.fee,
+    err: tx.err,
+    treasuryPre: tx.preBalances[treasuryAt],
+    treasuryPost: tx.postBalances[treasuryAt],
+    feeLamports: tx.fee,
     openedAccounts: job.openedAccounts.map((a) => {
       const i = keys.indexOf(a);
-      return i < 0 ? { pre: 0, post: 0 } : { pre: tx.meta!.preBalances[i], post: tx.meta!.postBalances[i] };
+      return i < 0 ? { pre: 0, post: 0 } : { pre: tx.preBalances[i], post: tx.postBalances[i] };
     }),
-    ataPreTokens: tokenAt(tx.meta.preTokenBalances),
-    ataPostTokens: tokenAt(tx.meta.postTokenBalances),
+    ataPreTokens: tokenAt(tx.preTokenBalances),
+    ataPostTokens: tokenAt(tx.postTokenBalances),
     burns,
     expectedTokens: BigInt(job.tokenAmount ?? "0"),
     reservedLamports: job.reservedLamports,
