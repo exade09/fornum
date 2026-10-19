@@ -114,7 +114,7 @@ export function WalletPicker({
                 isSelected && "border-brand bg-brand text-background hover:bg-brand",
               )}
             >
-              {w.index}
+              {w.label}
             </button>
           );
         })}
@@ -123,7 +123,8 @@ export function WalletPicker({
       {chosen && (
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border border-primary/[0.06] bg-card px-3 py-2">
           <span className="text-[10px] font-bold tracking-wider text-secondary uppercase">
-            Wallet {chosen.index}
+            Wallet {chosen.label}
+            {chosen.index < 0 && " · funding wallet"}
           </span>
           <span className="font-mono text-xs text-primary">
             {shortAddress(chosen.address)}
@@ -137,7 +138,7 @@ export function WalletPicker({
       {stranded.length > 0 && (
         <p className="text-xs text-warning">
           {stranded.length === 1
-            ? `Wallet ${stranded[0].index} has spent money with no launch recorded against it. Check whether a coin went out from it before using it`
+            ? `Wallet ${stranded[0].label} has spent money with no launch recorded against it. Check whether a coin went out from it before using it`
             : `${stranded.length} wallets have spent money with no launch recorded against them. Check them before using any`}
         </p>
       )}

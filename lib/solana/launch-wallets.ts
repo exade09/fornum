@@ -1,6 +1,7 @@
 import { Keypair } from "@solana/web3.js";
 import { derivePath } from "ed25519-hd-key";
 import * as bip39 from "bip39";
+import { launchKeypair } from "@/lib/solana/wallet";
 import "server-only";
 
 /**
@@ -35,12 +36,21 @@ function seedHex(): string | null {
   return cachedSeed;
 }
 
+/**
+ * The funding wallet in LAUNCH_WALLET_SECRET, usable as one more launch wallet
+ *
+ * It is not derived from the phrase, so it gets an index no derivation path
+ * can have. A token launched from it is paid out and collected with that key
+ */
+export const FUNDING_INDEX = -1;
+
 export function hasLaunchWallets() {
   return seedHex() !== null;
 }
 
 /** The keypair for one launch. Null when no phrase is configured */
 export function walletAt(index: number): Keypair | null {
+  if (index === FUNDING_INDEX) return launchKeypair();
   const seed = seedHex();
   if (seed === null) return null;
   if (!Number.isInteger(index) || index < 0 || index > 1_000_000) return null;

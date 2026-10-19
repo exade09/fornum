@@ -1,5 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
-import { addressAt, hasLaunchWallets } from "@/lib/solana/launch-wallets";
+import { FUNDING_INDEX, addressAt, hasLaunchWallets } from "@/lib/solana/launch-wallets";
+import { launchWalletAddress } from "@/lib/solana/wallet";
 import { connect } from "@/lib/solana/read";
 import { listTokens } from "@/lib/db/store";
 import "server-only";
@@ -36,6 +37,8 @@ export type WalletState =
 
 export type LaunchWallet = {
   index: number;
+  /** what the picker shows: the index, or the funding wallet's place after them */
+  label: string;
   address: string;
   lamports: number;
   state: WalletState;
@@ -50,10 +53,18 @@ export async function launchFleet(
   if (!hasLaunchWallets()) return null;
 
   const addresses: string[] = [];
+  const indexes: number[] = [];
   for (let i = 0; i < count; i++) {
     const address = addressAt(i);
     if (!address) return null;
     addresses.push(address);
+    indexes.push(i);
+  }
+  // the funding wallet goes last, as one more wallet a coin can launch from
+  const funding = launchWalletAddress();
+  if (funding && !addresses.includes(funding)) {
+    addresses.push(funding);
+    indexes.push(FUNDING_INDEX);
   }
 
   const tokens = await listTokens();
@@ -78,9 +89,11 @@ export async function launchFleet(
     }
   }
 
-  return addresses.map((address, index) => {
-    const token = byIndex.get(index);
-    const lamports = balances[index] ?? 0;
+  return addresses.map((address, n) => {
+    const index = indexes[n];
+    // coins recorded on the old shared wallet carry no index but did use it
+    const token = byIndex.get(index) ?? tokens.find((t) => t.launchWallet === address);
+    const lamports = balances[n] ?? 0;
 
     let state: WalletState;
     if (token) state = "used";
@@ -90,6 +103,7 @@ export async function launchFleet(
 
     return {
       index,
+      label: index === FUNDING_INDEX ? String(count) : String(index),
       address,
       lamports,
       state,
