@@ -161,6 +161,10 @@ export function judgeDistribution(r: {
   const dev = share(r.developer);
   const tre = share(r.treasury);
   if (!dev || !tre) return { kind: "manual", reason: "a shareholder is missing from the transaction" };
+  if (dev.got === 0 && tre.got === 0) {
+    // a distribution of nothing: nothing to count and nothing to review
+    return { kind: "failed", reason: "the distribution paid out nothing" };
+  }
   if (dev.got <= 0 || tre.got <= 0) {
     return { kind: "manual", reason: `payouts ${dev.got} and ${tre.got} are not both positive` };
   }

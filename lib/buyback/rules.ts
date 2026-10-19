@@ -32,7 +32,8 @@ export type BuybackSettings = {
 };
 
 export const DEFAULTS = {
-  minLamports: 1, // no threshold: any confirmed amount is spent
+  // the least worth one buy: below it the network fee would cost more than the buy
+  minLamports: 50_000,
   maxLamports: 1_000_000_000, // 1 SOL
   slippageBps: 300, // 3%
   maxNetworkCostLamports: 5_000_000, // 0.005 SOL, covers a Token-2022 ATA
@@ -102,7 +103,8 @@ export function parseSettings(env: Record<string, string | undefined>) {
   const settings: BuybackSettings = {
     enabled,
     treasuryWallet: addressSetting(env, "TREASURY_WALLET", problems, enabled),
-    mainMint: addressSetting(env, "PLATFORM_TOKEN_MINT", problems, enabled),
+    // optional: until the Fornum token exists, the 20% adds up in the ledger and waits
+    mainMint: addressSetting(env, "PLATFORM_TOKEN_MINT", problems, false),
     minLamports: lamportsSetting(env, "BUYBACK_MIN_LAMPORTS", DEFAULTS.minLamports, problems),
     maxLamports: lamportsSetting(env, "BUYBACK_MAX_LAMPORTS", DEFAULTS.maxLamports, problems),
     slippageBps: lamportsSetting(env, "BUYBACK_SLIPPAGE_BPS", DEFAULTS.slippageBps, problems),

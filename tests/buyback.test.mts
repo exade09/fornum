@@ -27,10 +27,9 @@ test("settings are off by default and need nothing while off", () => {
   assert.deepEqual(problems, []);
 });
 
-test("enabling without the addresses is refused", () => {
+test("enabling without the treasury is refused", () => {
   const { problems } = parseSettings({ BUYBACK_ENABLED: "true" });
   assert.ok(problems.some((p) => p.includes("TREASURY_WALLET")));
-  assert.ok(problems.some((p) => p.includes("PLATFORM_TOKEN_MINT")));
 });
 
 test("negative, fractional and unsafe lamports are refused", () => {
@@ -51,11 +50,17 @@ test("max below min is refused", () => {
   assert.ok(problems.some((p) => p.includes("BUYBACK_MAX_LAMPORTS")));
 });
 
-test("with no minimum set, any confirmed amount is spent", () => {
+test("by default a buy waits until it is worth its network fee", () => {
   const { settings } = parseSettings({});
-  assert.equal(settings.minLamports, 1);
-  assert.equal(nextBudget(5, settings), 5);
+  assert.equal(nextBudget(49_999, settings), 0);
+  assert.equal(nextBudget(50_000, settings), 50_000);
   assert.deepEqual(parseSettings({ BUYBACK_MIN_LAMPORTS: "0" }).problems, []);
+});
+
+test("buying back can be on before the Fornum token exists", () => {
+  const { settings, problems } = parseSettings({ BUYBACK_ENABLED: "true", TREASURY_WALLET: T });
+  assert.equal(settings.mainMint, null);
+  assert.deepEqual(problems, []);
 });
 
 test("the budget waits for the minimum and never passes the maximum", () => {

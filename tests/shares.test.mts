@@ -118,6 +118,11 @@ test("rounding by a lamport still counts, a different split does not", () => {
   assert.equal(judgeDistribution({ ...dist, postBalances: [49_995_000, 22_000_000, 21_000_000, 1_000_000] }).kind, "manual");
 });
 
+test("a distribution that paid nothing is not counted and not sent to review", () => {
+  const v = judgeDistribution({ ...dist, postBalances: [49_995_000, 15_000_000, 20_000_000, 9_000_000] });
+  assert.equal(v.kind, "failed");
+});
+
 test("anything but one plain top-level distribution goes to manual review", () => {
   assert.equal(judgeDistribution({ ...dist, topLevelDistributes: 2 }).kind, "manual");
   assert.equal(judgeDistribution({ ...dist, innerDistributes: 1 }).kind, "manual");

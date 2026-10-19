@@ -25,9 +25,11 @@ export function feesEnabled() {
 }
 
 export function minClaimLamports() {
-  // no threshold unless one is set: pump.fun's own minimum decides
-  const v = Number(process.env.FEE_MIN_CLAIM_LAMPORTS ?? "0");
-  return Number.isSafeInteger(v) && v >= 0 ? v : 0;
+  // by default a distribution runs once the treasury's 20% of it pays for its
+  // own network fee (about 20 000 lamports), so the treasury never pays more
+  // to collect its share than the share is worth
+  const v = Number(process.env.FEE_MIN_CLAIM_LAMPORTS ?? "100000");
+  return Number.isSafeInteger(v) && v >= 0 ? v : 100_000;
 }
 
 export async function distributeAll(
