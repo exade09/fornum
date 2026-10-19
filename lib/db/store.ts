@@ -77,6 +77,7 @@ type TokenRow = {
   image_url?: string | null;
   fees_accrued_lamports: string;
   fees_claimed_lamports: string;
+  fees_fornum_lamports?: string | null;
   market_cap_usd: string;
   holders: number;
   created_at: Date;
@@ -101,6 +102,7 @@ function toToken(r: TokenRow): Token {
     baselineLamports: Number(r.baseline_lamports ?? 0),
     feesAccruedLamports: Number(r.fees_accrued_lamports),
     feesClaimedLamports: Number(r.fees_claimed_lamports),
+    fornumTakenLamports: Number(r.fees_fornum_lamports ?? 0),
     marketCapUsd: Number(r.market_cap_usd),
     holders: r.holders,
     createdAt: r.created_at.toISOString(),
@@ -321,18 +323,36 @@ export async function claimsForToken(tokenId: string): Promise<Claim[]> {
  * Write the claim and move the token's claimed total in one go, so a crash
  * between the two cannot let the same fees be taken twice
  */
-export async function recordClaim(c: Omit<Claim, "createdAt">): Promise<Claim> {
+/**
+ * Record a claim and move the token's totals with it
+ *
+ * `amountLamports` is what the owner received. `fornumLamports` is Fornum's
+ * 20% split off in the same claim; when it stayed on the launch wallet
+ * instead of going to the treasury, `baselineBumpLamports` lifts the wallet's
+ * line by it, so the next claim does not count it as fees again
+ */
+export async function recordClaim(
+  c: Omit<Claim, "createdAt">,
+  split: { fornumLamports?: number; baselineBumpLamports?: number } = {},
+): Promise<Claim> {
   const created = new Date().toISOString();
+  const fornum = split.fornumLamports ?? 0;
+  const bump = split.baselineBumpLamports ?? 0;
 
   if (!sql) {
     seed();
     const claim: Claim = { ...c, createdAt: created };
     mem.claims.unshift(claim);
     const t = mem.tokens.find((x) => x.id === c.tokenId);
-    if (t) t.feesClaimedLamports += c.amountLamports;
+    if (t) {
+      t.feesClaimedLamports += c.amountLamports;
+      t.fornumTakenLamports = (t.fornumTakenLamports ?? 0) + fornum;
+      t.baselineLamports += bump;
+    }
     return claim;
   }
 
+  await ensureSchema();
   const [row] = await sql.begin(async (tx) => {
     const inserted = await tx<ClaimRow[]>`
       insert into claims (id, token_id, amount_lamports, wallet, tx)
@@ -341,7 +361,9 @@ export async function recordClaim(c: Omit<Claim, "createdAt">): Promise<Claim> {
     `;
     await tx`
       update tokens
-         set fees_claimed_lamports = fees_claimed_lamports + ${c.amountLamports}
+         set fees_claimed_lamports = fees_claimed_lamports + ${c.amountLamports},
+             fees_fornum_lamports = fees_fornum_lamports + ${fornum},
+             baseline_lamports = baseline_lamports + ${bump}
        where id = ${c.tokenId}
     `;
     return inserted;

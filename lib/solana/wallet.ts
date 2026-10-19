@@ -59,6 +59,17 @@ export function launchKeypair(): Keypair | null {
   }
 }
 
+/**
+ * Where Fornum's 20% goes at each claim
+ *
+ * FORNUM_TREASURY on the host. Without it the share stays on the launch
+ * wallet, recorded as Fornum's, and is never paid out to the owner
+ */
+export function treasuryAddress(): string | null {
+  const v = process.env.FORNUM_TREASURY?.trim();
+  return v && isValidAddress(v) ? v : null;
+}
+
 export function launchWalletAddress(): string | null {
   return launchKeypair()?.publicKey.toBase58() ?? null;
 }
@@ -92,7 +103,12 @@ export type TransferResult =
 export async function payOut(
   to: string,
   lamports: number,
-  options: { signer?: Keypair | null; floor?: number } = {},
+  options: {
+    signer?: Keypair | null;
+    floor?: number;
+    /** more transfers in the same transaction, e.g. Fornum's share to the treasury */
+    also?: { to: string; lamports: number }[];
+  } = {},
 ): Promise<TransferResult> {
   // a per token launch wallet signs for its own token, and keeps a smaller
   // floor than the shared wallet because it only has to survive, not to fund
@@ -113,10 +129,16 @@ export async function payOut(
     return { ok: false, error: "Nothing to send" };
   }
 
+  const extra = (options.also ?? []).filter((x) => x.lamports > 0);
+  if (extra.some((x) => !isValidAddress(x.to))) {
+    return { ok: false, error: "A payout address is not valid" };
+  }
+  const total = lamports + extra.reduce((s, x) => s + x.lamports, 0);
+
   const connection = connect();
   const available = await connection.getBalance(keypair.publicKey);
 
-  if (available - lamports < floor) {
+  if (available - total < floor) {
     return { ok: false, error: "The launch wallet is short on balance" };
   }
 
@@ -127,6 +149,15 @@ export async function payOut(
       lamports,
     }),
   );
+  for (const x of extra) {
+    tx.add(
+      SystemProgram.transfer({
+        fromPubkey: keypair.publicKey,
+        toPubkey: new PublicKey(x.to.trim()),
+        lamports: x.lamports,
+      }),
+    );
+  }
 
   try {
     const signature = await sendAndConfirmTransaction(

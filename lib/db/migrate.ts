@@ -92,6 +92,7 @@ const TOKEN_COLUMNS: Record<string, string> = {
   wallet_index: "integer",
   baseline_lamports: "bigint not null default 0",
   image_url: "text",
+  fees_fornum_lamports: "bigint not null default 0",
 };
 
 let done: Promise<void> | null = null;

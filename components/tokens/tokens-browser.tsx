@@ -12,7 +12,7 @@ import {
 import { TokenMark } from "@/components/ui/token-mark";
 import { SearchIcon, WhatsAppIcon } from "@/components/icons";
 import { compactUsd, num, sol, usdFrom } from "@/lib/format";
-import { claimableLamports, feeRecipientMasked, tokenImageSrc, type Token } from "@/lib/types";
+import { claimableLamports, claimedRatio, feeRecipientMasked, tokenImageSrc, type Token } from "@/lib/types";
 
 type Filter = "all" | "unclaimed" | "claimed";
 type SortKey = "fees" | "cap" | "new";
@@ -119,10 +119,7 @@ function TokenCard({
   price: number | null;
 }) {
   const left = claimableLamports(t);
-  const ratio =
-    t.feesAccruedLamports > 0
-      ? t.feesClaimedLamports / t.feesAccruedLamports
-      : 0;
+  const ratio = claimedRatio(t);
 
   return (
     <Link

@@ -14,6 +14,7 @@ import { claimsForToken, getToken, getWallet } from "@/lib/db/store";
 import { liveToken } from "@/lib/tokens";
 import {
   claimableLamports,
+  claimedRatio,
   feeRecipientHash,
   feeRecipientMasked,
   tokenImageSrc,
@@ -43,10 +44,7 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
   const linkedWallet = session ? await getWallet(session.sub) : null;
 
   const left = claimableLamports(t);
-  const ratio =
-    t.feesAccruedLamports > 0
-      ? t.feesClaimedLamports / t.feesAccruedLamports
-      : 0;
+  const ratio = claimedRatio(t);
 
   return (
     <div className="mx-auto flex w-full flex-col gap-3 px-4 pt-6 pb-10 lg:px-6 xl:max-w-7xl">
@@ -113,6 +111,7 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
             </div>
             <Progress value={ratio} />
             <span className="text-xs text-secondary">
+              80% of the fees are the owner's to claim, 20% go to Fornum.
               Fees land on the launch wallet{" "}
               <span className="font-mono">
                 {shortAddress(t.launchWallet, 6, 6)}

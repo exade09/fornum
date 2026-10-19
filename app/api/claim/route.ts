@@ -6,6 +6,7 @@ import {
   RENT_EXEMPT_LAMPORTS,
   balanceOf,
   isValidAddress,
+  treasuryAddress,
   launchKeypair,
   payOut,
   sendableFrom,
@@ -17,6 +18,7 @@ import {
   claimableFromBalance,
   claimableLamports,
   feeRecipientHash,
+  ownerShare,
 } from "@/lib/types";
 
 /**
@@ -123,20 +125,26 @@ export async function POST(request: Request) {
   }
 
   /**
-   * How much is owed
+   * How much is owed, and Fornum's part of it
    *
    * With a wallet of its own, the token's fees are simply what sits above the
    * line the wallet was funded to, so the chain is the source of truth and
    * nobody has to record an amount. The floor never drops below rent
-   * exemption, so a claim cannot leave the wallet to be swept away
+   * exemption, so a claim cannot leave the wallet to be swept away.
+   *
+   * That amount is split 80/20: the owner's part goes to their address, and
+   * Fornum's goes to the treasury in the same transaction, or stays on the
+   * launch wallet above a raised line when no treasury is set
    */
+  const floor = Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS);
+  const distributable = perToken
+    ? claimableFromBalance(balance, floor, FEE_LAMPORTS)
+    : 0;
   const owed = perToken
-    ? claimableFromBalance(
-        balance,
-        Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS),
-        FEE_LAMPORTS,
-      )
+    ? ownerShare(distributable)
     : Math.min(claimableLamports(token), sendableFrom(balance));
+  const fornum = perToken ? distributable - owed : 0;
+  const treasury = treasuryAddress();
 
   if (owed <= 0) {
     return Response.json({ error: "Nothing to claim" }, { status: 400 });
@@ -144,22 +152,28 @@ export async function POST(request: Request) {
 
   const sent = await payOut(wallet.trim(), owed, {
     signer,
-    floor: perToken
-      ? Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS)
-      : undefined,
+    floor: perToken ? floor : undefined,
+    also: perToken && treasury ? [{ to: treasury, lamports: fornum }] : [],
   });
   if (!sent.ok) {
     return Response.json({ error: sent.error }, { status: 502 });
   }
 
   forgetFees(token.id);
-  const claim = await recordClaim({
-    id: randomUUID(),
-    tokenId: token.id,
-    amountLamports: owed,
-    wallet: wallet.trim(),
-    tx: sent.signature,
-  });
+  const claim = await recordClaim(
+    {
+      id: randomUUID(),
+      tokenId: token.id,
+      amountLamports: owed,
+      wallet: wallet.trim(),
+      tx: sent.signature,
+    },
+    {
+      fornumLamports: fornum,
+      // kept on the launch wallet when there is no treasury, so lift its line
+      baselineBumpLamports: perToken && !treasury ? fornum : 0,
+    },
+  );
 
   return Response.json({
     amountLamports: claim.amountLamports,

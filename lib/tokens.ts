@@ -10,7 +10,8 @@ import type { Token } from "@/lib/types";
  * ever earned is either still with pump.fun, already collected into the
  * wallet above the line it was funded to, or already claimed:
  *
- *   earned = uncollected at pump.fun + (wallet balance - baseline) + claimed
+ *   earned = uncollected at pump.fun + (wallet balance - baseline)
+ *            + claimed by the owner + Fornum's share split off at claims
  *
  * pump.fun keeps part of that per coin (waiting on the coin's own curve and
  * pool) and part per creator (the creator vaults). A wallet normally makes one
@@ -62,7 +63,8 @@ export async function withLiveFees(tokens: Token[]): Promise<Token[]> {
           const first = i === 0;
           const collected = first ? Math.max(f.walletLamports - t.baselineLamports, 0) : 0;
           const uncollected = f.ownLamports + (first ? f.sharedLamports : 0);
-          const accrued = Math.max(uncollected + collected + t.feesClaimedLamports, t.feesClaimedLamports);
+          const taken = t.feesClaimedLamports + (t.fornumTakenLamports ?? 0);
+          const accrued = Math.max(uncollected + collected + taken, taken);
           cache.set(t.id, { at: now, accrued });
           if (Math.abs(accrued - t.feesAccruedLamports) >= 1_000) {
             setAccrued(t.id, accrued).catch((err) => console.error("[fees] could not store", t.id, err));

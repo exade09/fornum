@@ -43,7 +43,10 @@ export type Token = {
   baselineLamports: number;
 
   feesAccruedLamports: number;
+  /** what the owner has taken out, their 80% */
   feesClaimedLamports: number;
+  /** Fornum's 20% of what has been claimed, split off at each claim */
+  fornumTakenLamports?: number;
 
   marketCapUsd: number;
   holders: number;
@@ -71,9 +74,22 @@ export type LaunchRequest = {
 
 export const LAMPORTS_PER_SOL = 1_000_000_000;
 
-/** What is left to take right now, from what was recorded for the token */
+/** The owner's part of every creator fee, in basis points: 80%, Fornum keeps 20% */
+export const OWNER_SHARE_BPS = 8_000;
+
+export function ownerShare(lamports: number) {
+  return Math.floor((lamports * OWNER_SHARE_BPS) / 10_000);
+}
+
+/** What the owner can still take: their 80% of everything earned, less what they took */
 export function claimableLamports(t: Token) {
-  return Math.max(t.feesAccruedLamports - t.feesClaimedLamports, 0);
+  return Math.max(ownerShare(t.feesAccruedLamports) - t.feesClaimedLamports, 0);
+}
+
+/** How far through their share the owner is, 0 to 1 */
+export function claimedRatio(t: Token) {
+  const share = ownerShare(t.feesAccruedLamports);
+  return share > 0 ? Math.min(t.feesClaimedLamports / share, 1) : 0;
 }
 
 /**
