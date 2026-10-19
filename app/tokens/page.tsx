@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { PageHero, StaleNotice } from "@/components/shell/page-hero";
 import { TokensBrowser } from "@/components/tokens/tokens-browser";
-import { listTokens } from "@/lib/db/store";
+import { liveTokens } from "@/lib/tokens";
 import { solPriceUsd } from "@/lib/solana/price";
 
 export const metadata: Metadata = { title: "Tokens" };
 
 export default async function TokensPage() {
-  const [tokens, price] = await Promise.all([listTokens(), solPriceUsd()]);
+  const [tokens, price] = await Promise.all([liveTokens(), solPriceUsd()]);
 
   return (
     <>

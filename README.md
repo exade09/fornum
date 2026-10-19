@@ -40,9 +40,10 @@ Production build is `npm run build`, serve it with `npm start`.
 /tokens           everything launched here, fees and who they belong to
 /token/[id]       one token: fees, claim, hand over, claim history
 /payouts          claims, every one with a transaction
-/signin           sign in with a phone number, code over SMS or WhatsApp
+/signin           sign in with a phone number by writing to it, link a wallet
+/s/[token]        one time sign in link from the chat
 /docs             how it works, including the money flow
-/admin            pin the counters shown on the site
+/admin            sign ins, launches, fees and the counters shown on the site
 /legal/*          terms and privacy
 ```
 
@@ -70,9 +71,13 @@ that knows which one is in use.
 
 ## Claiming
 
-Creator fees accrue to the launch wallet that deployed the mint. A claim is a
-plain SOL transfer out of it to an address the recipient gives us, so there is
-no program to call yet.
+Creator fees accrue to the launch wallet that deployed the mint. pump.fun holds
+them until the creator collects, so a claim first sweeps and collects them
+into the launch wallet (one transaction built from pump.fun's published IDL,
+`lib/pump/collect.ts`), then sends a plain SOL transfer to the address the
+recipient gives us. Fees are never typed in: what a token earned is read off
+the chain, pump.fun's creator vaults plus the wallet above its funding line
+plus what was claimed (`lib/tokens.ts`).
 
 `POST /api/claim` checks the session against the token's recipient hash, reads
 the wallet balance on chain, sends the transfer, then writes the claim and moves
@@ -83,8 +88,16 @@ wallet keeps a small reserve so it can always pay for the next transaction.
 purpose: the new holder can pass them on again, the sender cannot pull them
 back.
 
-`POST /api/admin/launch` is how the operator records a launch they did by hand.
-Guarded by `ADMIN_TOKEN`, used from `/admin`.
+`POST /api/admin/launch` launches a coin from `/admin`: the picture and the
+metadata are pinned to IPFS (`PINATA_JWT`), the coin is created on pump.fun
+through PumpPortal from the first funded, unused launch wallet, and the mint is
+recorded by itself. A JSON body with `mint` still records a coin deployed some
+other way.
+
+`/admin` is behind a password. Only its scrypt hash is kept, in
+`ADMIN_PASSWORD_HASH`, made with `node scripts/admin-password.mts`. The
+operator routes take that session cookie, or `ADMIN_TOKEN` as a bearer token
+for scripts.
 
 ## Counters
 
@@ -121,18 +134,36 @@ number that did not write first.
 
 ## Signing in
 
-A phone number is the account. `/signin` sends a one time code over WhatsApp,
-or SMS if the visitor picks that, and the session is a signed cookie holding a
-salted hash of the number plus a masked copy for display. The raw number is
-never in the cookie.
+A phone number is the account, and nothing talks to WhatsApp or to an SMS
+provider to prove it. The number stays in the WhatsApp Business app on the
+operator's phone, exactly as it is for launches, and the operator is the
+bridge between the thread and the site. There are two ways in.
 
-Delivery goes through Twilio Verify: one API for both channels, with Meta
-approved authentication templates included, so no template review is needed.
-Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_VERIFY_SERVICE_SID`
-to switch it on. With those unset the flow runs on a local stub that accepts
-`000000`, so the whole path can be walked before an account exists.
+**A link in the launch reply.** When the operator records a launch in
+`/admin`, the site writes the reply for the thread: the mint and a one time
+link for the launcher's number. The operator only ever replies to the number
+that wrote, so the thread itself proves who will open it. The link lands on
+`/s/[token]`, which waits for a button press because WhatsApp fetches every
+link to draw a preview. A link works once and for a week. Somebody who writes
+asking to sign in gets a fresh one from the same panel.
 
-`lib/auth/verify.ts` is the only file that knows about the provider.
+**A code sent from the number.** On `/signin` the visitor types their number
+and gets a short code with a `wa.me` link to the Fornum number. They send it,
+it shows up in the chat and in the sign in queue on `/admin`, and the operator
+types the number it came from next to it. The site confirms only if that
+number hashes to the one typed on the site, and only the browser that asked
+holds the secret, an httpOnly cookie, that turns the confirmation into a
+session. The page polls `/api/auth/check` and moves on by itself. A code
+waits a day, and the page picks it up again if the visitor comes back. Five
+codes an hour per number, no other limit.
+
+After either, the visitor links a wallet, connected from Phantom, Solflare or
+Backpack or pasted, and every claim goes there unless another address is typed
+for that claim. Wallets live in `accounts`, keyed by the number's hash.
+
+Run `db/004-whatsapp-sign-in.sql` and `db/005-sign-in-links.sql` once.
+`lib/auth/verify.ts` holds the codes, `lib/auth/sign-in-links.ts` the links and
+`lib/replies.ts` the text the operator pastes.
 
 ## Status
 

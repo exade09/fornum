@@ -23,6 +23,7 @@ export function ClaimPanel({
   recipient,
   canClaim,
   signedIn,
+  linkedWallet,
   price,
 }: {
   tokenId: string;
@@ -32,11 +33,13 @@ export function ClaimPanel({
   recipient: string;
   canClaim: boolean;
   signedIn: boolean;
+  /** where the signed in number sends its fees, prefilled and changeable */
+  linkedWallet: string | null;
   price: number | null;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("claim");
-  const [wallet, setWallet] = useState("");
+  const [wallet, setWallet] = useState(linkedWallet ?? "");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -202,6 +205,9 @@ export function ClaimPanel({
               </button>
 
               <span className="text-xs text-secondary">
+                {linkedWallet && wallet.trim() === linkedWallet
+                  ? "Your linked wallet. "
+                  : ""}
                 The transfer goes out of the launch wallet straight to this
                 address. Network fees come out of the amount
               </span>

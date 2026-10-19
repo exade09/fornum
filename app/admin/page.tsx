@@ -4,11 +4,17 @@ import { StatsControls } from "@/components/admin/stats-controls";
 import { LaunchRecorder } from "@/components/admin/launch-recorder";
 import { FeesRecorder } from "@/components/admin/fees-recorder";
 import { TokenRemover } from "@/components/admin/token-remover";
+import { SignInDesk } from "@/components/admin/sign-in-desk";
+import { TokenImages } from "@/components/admin/token-images";
+import { AdminLogin, AdminLogout } from "@/components/admin/admin-login";
+import { adminSetupProblem, isAdmin } from "@/lib/auth/admin";
+import { ipfsProblem } from "@/lib/pump/ipfs";
 import { launchFleet } from "@/lib/launch-fleet";
 import { Card } from "@/components/ui/primitives";
 import { siteConfig } from "@/lib/config";
 import { hasDatabase } from "@/lib/db/client";
-import { dbError, listTokens } from "@/lib/db/store";
+import { dbError } from "@/lib/db/store";
+import { liveTokens } from "@/lib/tokens";
 import { getStats, sol } from "@/lib/data";
 import { balanceOf, launchWalletAddress } from "@/lib/solana/wallet";
 
@@ -18,9 +24,23 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminPage() {
+  // nothing below is shown, or even read, until the password is in
+  if (!(await isAdmin())) {
+    return (
+      <>
+        <PageHero eyebrow="Internal" title="Site controls" description="Operators only" />
+        <AdminLogin problem={adminSetupProblem()} />
+      </>
+    );
+  }
+
   const stats = await getStats();
   const dbFault = dbError();
-  const tokens = await listTokens();
+  const tokens = await liveTokens();
+  const sharedWalletTokens = tokens.filter(
+    (t) => t.walletIndex === null || t.walletIndex === undefined,
+  );
+  const pinning = ipfsProblem();
   const wallet = launchWalletAddress();
 
   // state of every launch wallet: derived, balances read in one call, each one
@@ -65,22 +85,41 @@ export default async function AdminPage() {
               ok={!siteConfig.demoData}
             />
             <Row
-              label="Launch wallet"
+              label="Funding wallet"
               value={wallet ?? "LAUNCH_WALLET_SECRET is not set"}
               ok={Boolean(wallet)}
               mono
             />
             <Row
-              label="Wallet balance"
+              label="Funding wallet balance"
               value={balance === null ? "unknown" : sol(balance)}
               ok={balance !== null && balance > 0}
             />
+            <Row
+              label="Pictures"
+              value={pinning ?? "IPFS through Pinata"}
+              ok={!pinning}
+            />
+            <Row
+              label="Launch wallets"
+              value={
+                wallets === null
+                  ? "LAUNCH_WALLETS_MNEMONIC is not set"
+                  : `${wallets.filter((w) => w.state === "ready").length} ready of ${wallets.length}`
+              }
+              ok={Boolean(wallets?.some((w) => w.state === "ready"))}
+            />
           </div>
+          <AdminLogout />
         </Card>
+
+        <SignInDesk />
 
         <LaunchRecorder wallets={wallets} />
 
-        <FeesRecorder tokens={tokens} />
+        <TokenImages tokens={tokens} />
+
+        <FeesRecorder tokens={sharedWalletTokens} />
 
         <StatsControls current={stats} overrides={siteConfig.overrides} />
 

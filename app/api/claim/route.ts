@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readSession } from "@/lib/auth/session";
-import { getToken, recordClaim } from "@/lib/db/store";
+import { getToken, getWallet, recordClaim } from "@/lib/db/store";
 import {
   FEE_LAMPORTS,
   RENT_EXEMPT_LAMPORTS,
@@ -11,6 +11,8 @@ import {
   sendableFrom,
 } from "@/lib/solana/wallet";
 import { walletAt } from "@/lib/solana/launch-wallets";
+import { MIN_COLLECT_LAMPORTS, collectCreatorFees, readWalletFees } from "@/lib/pump/fees";
+import { forgetFees } from "@/lib/tokens";
 import {
   claimableFromBalance,
   claimableLamports,
@@ -25,16 +27,22 @@ import {
  * behind, and the write moves the claimed total in the same transaction so the
  * same fees cannot go out twice
  */
+// collecting from pump.fun first means two transactions back to back
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const session = await readSession();
   if (!session) {
     return Response.json({ error: "Sign in first" }, { status: 401 });
   }
 
-  const { tokenId, wallet } = (await request.json()) as {
+  const body = (await request.json()) as {
     tokenId?: string;
     wallet?: string;
   };
+  const tokenId = body.tokenId;
+  // an address typed for this claim wins, otherwise the one linked to the number
+  const wallet = body.wallet?.trim() || (await getWallet(session.sub));
 
   if (!tokenId || !wallet || !isValidAddress(wallet)) {
     return Response.json(
@@ -83,6 +91,27 @@ export async function POST(request: Request) {
     );
   }
 
+  /**
+   * Bring the fees in from pump.fun first
+   *
+   * pump.fun holds a creator's fees until the creator collects them, so a
+   * claim collects whatever is waiting into the launch wallet and then pays
+   * out of the wallet. If collecting fails, whatever is already in the wallet
+   * can still be paid
+   */
+  if (perToken) {
+    try {
+      const waiting = (
+        await readWalletFees([{ wallet: token.launchWallet, mint: token.mint }])
+      ).get(token.launchWallet);
+      if (waiting && waiting.uncollectedLamports >= MIN_COLLECT_LAMPORTS) {
+        await collectCreatorFees(signer, token.mint);
+      }
+    } catch (err) {
+      console.error(`[claim] ${token.id} could not collect from pump.fun`, err);
+    }
+  }
+
   let balance: number;
   try {
     balance = await balanceOf(token.launchWallet);
@@ -123,6 +152,7 @@ export async function POST(request: Request) {
     return Response.json({ error: sent.error }, { status: 502 });
   }
 
+  forgetFees(token.id);
   const claim = await recordClaim({
     id: randomUUID(),
     tokenId: token.id,

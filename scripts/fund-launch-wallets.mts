@@ -78,7 +78,7 @@ function destinations(count: number): PublicKey[] {
 const sol = (lamports: number) => (lamports / LAMPORTS_PER_SOL).toFixed(6);
 
 async function main() {
-  const count = Number(process.argv[2]) || 100;
+  const count = Number(process.argv[2]) || 60;
   const target = Math.round(
     Number(arg("--sol") ?? DEFAULT_TARGET_SOL) * LAMPORTS_PER_SOL,
   );

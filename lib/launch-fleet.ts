@@ -13,7 +13,7 @@ import "server-only";
  * matched against what has actually been launched
  */
 
-export const FLEET_SIZE = 100;
+export const FLEET_SIZE = 60;
 
 /** What the funding script tops a wallet up to */
 export const FUNDED_TARGET = 15_000_000;
