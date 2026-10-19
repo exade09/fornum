@@ -233,7 +233,7 @@ function Bubble({ msg, delay }: { msg: Msg; delay: number }) {
 function Meta({ mine = false }: { mine?: boolean }) {
   return (
     <span className="flex shrink-0 translate-y-0.5 items-center gap-0.5 text-[9.5px] leading-none text-white/50">
-      17:22
+      5:22 PM
       {mine && (
         <svg viewBox="0 0 16 10" className="h-2.5 w-4" aria-hidden="true">
           <path d="M1 5.5 3.6 8 8.6 2M6.4 7.2 7.2 8l5-6" fill="none" stroke="#53bdeb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
