@@ -16,6 +16,7 @@ import {
   claimableLamports,
   feeRecipientHash,
   feeRecipientMasked,
+  tokenImageSrc,
 } from "@/lib/types";
 import { solPriceUsd } from "@/lib/solana/price";
 import { readSession } from "@/lib/auth/session";
@@ -63,7 +64,7 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
             sheen
             className="animate-section-in flex items-center gap-4 p-5"
           >
-            <TokenMark symbol={t.symbol} image={t.imageUrl ?? undefined} size="xl" className="size-16" />
+            <TokenMark symbol={t.symbol} image={tokenImageSrc(t)} size="xl" className="size-16" />
             <div className="flex min-w-0 flex-col gap-1">
               <div className="flex items-center gap-2">
                 <span className="truncate text-xl font-bold text-primary">

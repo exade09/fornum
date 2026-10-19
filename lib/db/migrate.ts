@@ -105,6 +105,18 @@ export function ensureSchema() {
       where table_schema = current_schema() and table_name = 'tokens'
     `;
     const present = new Set(have.map((r) => r.column_name));
+    // masks once showed the last four digits, now only two
+    for (const [table, column] of [
+      ["tokens", "owner_masked"],
+      ["tokens", "assignee_masked"],
+      ["launch_requests", "phone_masked"],
+      ["login_challenges", "phone_masked"],
+      ["sign_in_links", "phone_masked"],
+    ]) {
+      await sql!.unsafe(
+        `update ${table} set ${column} = regexp_replace(${column}, ' ••• [0-9]*([0-9]{2})$', ' ••• \\1') where ${column} ~ ' ••• [0-9]{3,}$'`,
+      );
+    }
     for (const [column, type] of Object.entries(TOKEN_COLUMNS)) {
       if (!present.has(column)) {
         await sql!.unsafe(`alter table tokens add column if not exists ${column} ${type}`);

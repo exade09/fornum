@@ -3,6 +3,7 @@ import { ensureSchema } from "@/lib/db/migrate";
 import { siteConfig } from "@/lib/config";
 import { DEMO_CLAIMS, DEMO_TOKENS } from "@/lib/demo-data";
 import type { Claim, LaunchRequest, Token } from "@/lib/types";
+import { tightenMask } from "@/lib/auth/verify";
 
 /**
  * Every read and write the app does, in one place
@@ -90,9 +91,9 @@ function toToken(r: TokenRow): Token {
     status: r.status as Token["status"],
     imageUrl: r.image_url ?? null,
     ownerHash: r.owner_hash,
-    ownerMasked: r.owner_masked,
+    ownerMasked: tightenMask(r.owner_masked),
     assigneeHash: r.assignee_hash,
-    assigneeMasked: r.assignee_masked,
+    assigneeMasked: r.assignee_masked ? tightenMask(r.assignee_masked) : r.assignee_masked,
     launchWallet: r.launch_wallet,
     // both tolerate a database that has not had the migration run yet, so the
     // order of deploy and migration cannot put NaN on a page

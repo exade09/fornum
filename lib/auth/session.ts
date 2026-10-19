@@ -77,7 +77,9 @@ export async function createSession(sub: string, masked: string) {
 
 export async function readSession(): Promise<Session | null> {
   const raw = (await cookies()).get(COOKIE)?.value;
-  return raw ? decode(raw) : null;
+  const session = raw ? decode(raw) : null;
+  // sessions started before masks showed two digits still carry four
+  return session ? { ...session, masked: session.masked.replace(/ ••• \d*(\d\d)$/, " ••• $1") } : null;
 }
 
 export async function clearSession() {

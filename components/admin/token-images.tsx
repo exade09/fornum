@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/primitives";
 import { TokenMark } from "@/components/ui/token-mark";
-import type { Token } from "@/lib/types";
+import { tokenImageSrc, type Token } from "@/lib/types";
 
 /**
  * Pictures of the coins already launched
@@ -74,7 +74,7 @@ function Row({ token }: { token: Token }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-primary/[0.06] bg-background/70 p-3">
       <label className={`group relative shrink-0 ${busy ? "cursor-wait opacity-60" : "cursor-pointer"}`}>
-        <TokenMark symbol={token.symbol} image={token.imageUrl ?? undefined} size="lg" className="size-12" />
+        <TokenMark symbol={token.symbol} image={tokenImageSrc(token)} size="lg" className="size-12" />
         <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/55 text-[9px] font-bold tracking-wider text-white uppercase opacity-0 transition-opacity group-hover:opacity-100">
           {busy ? "…" : "Change"}
         </span>

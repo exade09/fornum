@@ -92,6 +92,18 @@ export function claimableFromBalance(
   return Math.max(balanceLamports - baselineLamports - reserveLamports, 0);
 }
 
+/**
+ * Where the page loads a token's picture from
+ *
+ * Through the site rather than straight from an IPFS gateway, which rate
+ * limits. The tail of the URL is in the query so a changed picture is a new
+ * address and no cache keeps showing the old one
+ */
+export function tokenImageSrc(t: Pick<Token, "id" | "imageUrl">) {
+  if (!t.imageUrl) return undefined;
+  return `/api/token-image/${encodeURIComponent(t.id)}?v=${t.imageUrl.slice(-12)}`;
+}
+
 /** Whoever the fees were handed to, otherwise the owner */
 export function feeRecipientHash(t: Token) {
   return t.assigneeHash ?? t.ownerHash;

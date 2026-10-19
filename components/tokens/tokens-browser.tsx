@@ -12,7 +12,7 @@ import {
 import { TokenMark } from "@/components/ui/token-mark";
 import { SearchIcon, WhatsAppIcon } from "@/components/icons";
 import { compactUsd, num, sol, usdFrom } from "@/lib/format";
-import { claimableLamports, feeRecipientMasked, type Token } from "@/lib/types";
+import { claimableLamports, feeRecipientMasked, tokenImageSrc, type Token } from "@/lib/types";
 
 type Filter = "all" | "unclaimed" | "claimed";
 type SortKey = "fees" | "cap" | "new";
@@ -132,7 +132,7 @@ function TokenCard({
     >
       <Card lift sheen className="flex h-full flex-col gap-4 p-4">
         <div className="flex items-center gap-3">
-          <TokenMark symbol={t.symbol} image={t.imageUrl ?? undefined} size="lg" className="size-10" />
+          <TokenMark symbol={t.symbol} image={tokenImageSrc(t)} size="lg" className="size-10" />
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-bold text-primary">
               {t.symbol}

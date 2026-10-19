@@ -31,9 +31,18 @@ export function normalizePhone(input: string) {
 
 /** Masked for display, the raw number never goes to the client */
 export function maskPhone(phone: string) {
-  const tail = phone.slice(-4);
+  // the country code and one digit, then only the last two
+  const tail = phone.slice(-2);
   const head = phone.slice(0, Math.max(phone.length - 8, 3));
   return `${head} ••• ${tail}`;
+}
+
+/**
+ * Masks written before the tail was cut to two digits showed four. Anything
+ * shown goes through this, so old rows and old cookies read the same as new
+ */
+export function tightenMask(masked: string) {
+  return masked.replace(/ ••• \d*(\d\d)$/, " ••• $1");
 }
 
 const TTL_HOURS = 24;
