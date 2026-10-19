@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
+import { openPhone, sealPhone } from "@/lib/auth/seal";
 import { sql } from "@/lib/db/client";
 import { siteConfig } from "@/lib/config";
 
@@ -81,6 +82,8 @@ type Challenge = {
   code: string;
   phoneHash: string;
   phoneMasked: string;
+  /** the full number, only while the sign in waits, for the operator */
+  phone: string;
   browserHash: string;
   status: "pending" | "approved";
   expiresAt: number;
@@ -111,6 +114,7 @@ export type StartedChallenge = {
 export async function startChallenge(
   phoneHash: string,
   phoneMasked: string,
+  phone: string,
 ): Promise<StartedChallenge> {
   const id = randomUUID();
   const secret = randomBytes(24).toString("base64url");
@@ -125,6 +129,7 @@ export async function startChallenge(
       code,
       phoneHash,
       phoneMasked,
+      phone,
       browserHash: sha(secret),
       status: "pending",
       expiresAt,
@@ -141,9 +146,9 @@ export async function startChallenge(
     try {
       await sql`
         insert into login_challenges
-          (id, code, phone_hash, phone_masked, browser_hash, expires_at)
+          (id, code, phone_hash, phone_masked, phone_sealed, browser_hash, expires_at)
         values
-          (${id}, ${code}, ${phoneHash}, ${phoneMasked}, ${sha(secret)},
+          (${id}, ${code}, ${phoneHash}, ${phoneMasked}, ${sealPhone(phone)}, ${sha(secret)},
            ${new Date(expiresAt)})
       `;
       return { id, code, secret, expiresAt };
@@ -153,7 +158,7 @@ export async function startChallenge(
   }
 }
 
-export type PendingSignIn = { code: string; masked: string; createdAt: string };
+export type PendingSignIn = { code: string; masked: string; phone: string | null; createdAt: string };
 
 /** What is waiting for the operator, newest first */
 export async function listPending(): Promise<PendingSignIn[]> {
@@ -165,12 +170,13 @@ export async function listPending(): Promise<PendingSignIn[]> {
       .map((c) => ({
         code: c.code,
         masked: c.phoneMasked,
+        phone: c.phone,
         createdAt: new Date(c.createdAt).toISOString(),
       }));
   }
 
-  const rows = await sql<{ code: string; phone_masked: string; created_at: Date }[]>`
-    select code, phone_masked, created_at from login_challenges
+  const rows = await sql<{ code: string; phone_masked: string; phone_sealed: string | null; created_at: Date }[]>`
+    select code, phone_masked, phone_sealed, created_at from login_challenges
      where status = 'pending' and expires_at > now()
      order by created_at desc
      limit 100
@@ -178,6 +184,7 @@ export async function listPending(): Promise<PendingSignIn[]> {
   return rows.map((r) => ({
     code: r.code,
     masked: r.phone_masked,
+    phone: openPhone(r.phone_sealed),
     createdAt: r.created_at.toISOString(),
   }));
 }
@@ -217,6 +224,29 @@ export async function approveCode(
      where code = ${code} and phone_hash = ${senderPhoneHash}
   `;
   return { ok: true, masked: row.phone_masked };
+}
+
+/**
+ * The operator lets a waiting sign in through without the WhatsApp message
+ *
+ * Nothing proves the visitor owns the number then, so this is for when the
+ * operator knows it some other way. Whoever started the sign in gets every
+ * token of that number
+ */
+export async function approveWithoutMessage(code: string): Promise<Approval> {
+  if (!sql) {
+    sweepMemory();
+    const c = [...memory.values()].find((x) => x.code === code && x.status === "pending");
+    if (!c) return { ok: false, reason: "unknown" };
+    c.status = "approved";
+    return { ok: true, masked: c.phoneMasked };
+  }
+  const [row] = await sql<{ phone_masked: string }[]>`
+    update login_challenges set status = 'approved'
+     where code = ${code} and status = 'pending' and expires_at > now()
+    returning phone_masked
+  `;
+  return row ? { ok: true, masked: row.phone_masked } : { ok: false, reason: "unknown" };
 }
 
 /**

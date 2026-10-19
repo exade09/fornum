@@ -1,5 +1,5 @@
 import { refuseUnlessAdmin } from "@/lib/auth/admin";
-import { approveCode, cleanCode, listPending, normalizePhone } from "@/lib/auth/verify";
+import { approveCode, approveWithoutMessage, cleanCode, listPending, normalizePhone } from "@/lib/auth/verify";
 import { hashPhone } from "@/lib/auth/session";
 
 /** Codes visitors were given and have not been confirmed yet */
@@ -20,9 +20,17 @@ export async function POST(request: Request) {
   const refused = await refuseUnlessAdmin(request);
   if (refused) return refused;
 
-  const body = (await request.json()) as { code?: string; phone?: string };
+  const body = (await request.json()) as { code?: string; phone?: string; withoutMessage?: boolean };
   const code = cleanCode(body.code ?? "");
   const phone = normalizePhone(body.phone ?? "");
+
+  // the operator knows the number is theirs some other way
+  if (body.withoutMessage && code) {
+    const r = await approveWithoutMessage(code);
+    return r.ok
+      ? Response.json({ masked: r.masked })
+      : Response.json({ error: "No code like that is waiting. It may have expired or been used" }, { status: 404 });
+  }
 
   if (!code || !phone) {
     return Response.json(

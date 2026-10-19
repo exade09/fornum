@@ -7,7 +7,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy"
-      updated="19 September 2026"
+      updated="20 October 2026"
       intro="The only sensitive thing we handle is a phone number. Here is where it goes, where it does not, and how to remove it"
       sections={[
         {
@@ -20,6 +20,7 @@ export default function PrivacyPage() {
           title: "What stays off chain",
           body: [
             "The WhatsApp thread, the mapping between hash and number, and the pictures you send for the token image. The site shows a masked number to everyone, and the full one to nobody",
+            "While a sign in is waiting to be confirmed, the number you typed is kept encrypted so the Fornum operator can see who is signing in. It is deleted when the sign in completes or its code expires",
           ],
         },
         {

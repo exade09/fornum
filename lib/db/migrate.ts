@@ -94,6 +94,7 @@ const TABLES = [
   `create table if not exists launch_fee_policies ( mint text primary key, developer text not null, treasury text not null, developer_bps integer not null, treasury_bps integer not null, state text not null default 'expected', signature text unique, error text, created_at timestamptz not null default now(), verified_at timestamptz, check (developer_bps + treasury_bps = 10000), check (developer <> treasury) )`,
   `create table if not exists app_settings ( key text primary key, value text not null, updated_at timestamptz not null default now() )`,
   `alter table treasury_credits add column if not exists kind text not null default 'claim'`,
+  `alter table login_challenges add column if not exists phone_sealed text`,
   `create table if not exists claim_locks ( token_id text primary key, owner text not null, expires_at timestamptz not null )`,
 ];
 

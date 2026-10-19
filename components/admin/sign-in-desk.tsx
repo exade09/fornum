@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 
 const POLL_MS = 10_000;
 
-type Pending = { code: string; masked: string; createdAt: string };
+type Pending = { code: string; masked: string; phone: string | null; createdAt: string };
 
 /**
  * Where the operator lets people in
@@ -78,15 +78,23 @@ function PendingRow({ item, onDone }: { item: Pending; onDone: () => void }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  async function approve(e: React.FormEvent) {
-    e.preventDefault();
-    if (busy || phone.replace(/\D/g, "").length < 8) return;
+  async function approve(e: React.FormEvent | null, withoutMessage = false) {
+    e?.preventDefault();
+    if (busy) return;
+    if (!withoutMessage && phone.replace(/\D/g, "").length < 8) return;
+    if (
+      withoutMessage &&
+      !confirm(
+        `Sign ${item.phone ?? item.masked} in without the WhatsApp code?\n\nNothing proves this person owns the number. Whoever started this sign in gets the fees of every token on it. Only do this if you know the number is theirs.`,
+      )
+    )
+      return;
     setBusy(true);
     setError("");
     const res = await fetch("/api/admin/sign-ins", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: item.code, phone }),
+      body: JSON.stringify({ code: item.code, phone, withoutMessage }),
     });
     setBusy(false);
 
@@ -106,9 +114,10 @@ function PendingRow({ item, onDone }: { item: Pending; onDone: () => void }) {
     >
       <div className="flex min-w-[170px] flex-col">
         <span className="font-mono text-lg tracking-[0.2em] text-primary">{item.code}</span>
-        <span className="tnum text-xs text-secondary">
-          {item.masked} · {ago(item.createdAt)}
+        <span className="tnum text-xs text-secondary select-all">
+          {item.phone ?? item.masked}
         </span>
+        <span className="tnum text-[11px] text-secondary">{ago(item.createdAt)}</span>
       </div>
 
       {done ? (
@@ -136,6 +145,15 @@ function PendingRow({ item, onDone }: { item: Pending; onDone: () => void }) {
             )}
           >
             {busy ? "Checking" : "Confirm"}
+          </button>
+          <button
+            type="button"
+            onClick={() => approve(null, true)}
+            disabled={busy}
+            title="Only if you know the number is theirs"
+            className="flex h-10 items-center justify-center rounded-full border border-queued/40 px-4 text-xs font-bold text-queued transition-colors hover:bg-queued/10 disabled:opacity-40"
+          >
+            Sign in without WhatsApp
           </button>
         </>
       )}

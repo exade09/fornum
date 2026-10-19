@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     return Response.json({ error: allowed.error }, { status: 429 });
   }
 
-  const challenge = await startChallenge(phoneHash, maskPhone(normalized));
+  const challenge = await startChallenge(phoneHash, maskPhone(normalized), normalized);
 
   (await cookies()).set(CHALLENGE_COOKIE, `${challenge.id}.${challenge.secret}`, {
     httpOnly: true,
