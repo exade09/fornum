@@ -7,7 +7,6 @@ import {
   RENT_EXEMPT_LAMPORTS,
   balanceOf,
   isValidAddress,
-  treasuryAddress,
   launchKeypair,
   payOut,
   sendableFrom,
@@ -15,8 +14,10 @@ import {
 import { walletAt } from "@/lib/solana/launch-wallets";
 import { MIN_COLLECT_LAMPORTS, collectCreatorFees, readWalletFees } from "@/lib/pump/fees";
 import { forgetFees } from "@/lib/tokens";
-import { buysBack, runBuyback } from "@/lib/buyback";
-import { MIN_BUYBACK_LAMPORTS } from "@/lib/pump/buyback";
+import { platformMint, treasuryWallet } from "@/lib/buyback/config";
+import { recordPendingCredit } from "@/lib/buyback/ledger";
+import { runBuybackPass } from "@/lib/buyback/worker";
+import { hasDatabase } from "@/lib/db/client";
 import {
   claimableFromBalance,
   claimableLamports,
@@ -32,8 +33,8 @@ import {
  * behind, and the write moves the claimed total in the same transaction so the
  * same fees cannot go out twice
  */
-// collecting from pump.fun first means two transactions back to back, and the
-// buyback runs after the answer within the same limit
+// collecting from pump.fun first means two transactions back to back, and a
+// buyback pass runs after the answer within the same limit
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
@@ -55,6 +56,11 @@ export async function POST(request: Request) {
       { error: "Send a token and a valid Solana address" },
       { status: 400 },
     );
+  }
+
+  const treasury = treasuryWallet();
+  if (treasury && wallet.trim() === treasury) {
+    return Response.json({ error: "That address is Fornum's treasury, use your own" }, { status: 400 });
   }
 
   const token = await getToken(tokenId);
@@ -136,11 +142,11 @@ export async function POST(request: Request) {
    * nobody has to record an amount. The floor never drops below rent
    * exemption, so a claim cannot leave the wallet to be swept away.
    *
-   * That amount is split 80/20: the owner's part goes to their address.
-   * Fornum's part stays on the launch wallet to buy back the Fornum token
-   * right after this answers, or, when no buyback is set up, goes to the
-   * treasury in the same transaction, or stays above a raised line when
-   * there is no treasury either
+   * That amount is split 80/20: the owner's part goes to their address, and
+   * Fornum's goes to the treasury in the same transaction, or stays on the
+   * launch wallet above a raised line when no treasury is set. What reaches
+   * the treasury is written to the buyback ledger once the receipt is final,
+   * except for the Fornum token's own fees, which do not buy the token back
    */
   const floor = Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS);
   const distributable = perToken
@@ -150,8 +156,6 @@ export async function POST(request: Request) {
     ? ownerShare(distributable)
     : Math.min(claimableLamports(token), sendableFrom(balance));
   const fornum = perToken ? distributable - owed : 0;
-  const buyback = perToken && buysBack(token);
-  const treasury = buyback ? null : treasuryAddress();
 
   if (owed <= 0) {
     return Response.json({ error: "Nothing to claim" }, { status: 400 });
@@ -177,16 +181,29 @@ export async function POST(request: Request) {
     },
     {
       fornumLamports: fornum,
-      // kept on the launch wallet when it does not go to the treasury, so lift its line
+      // kept on the launch wallet when there is no treasury, so lift its line
       baselineBumpLamports: perToken && !treasury ? fornum : 0,
-      buybackLamports: buyback ? fornum : 0,
     },
   );
 
-  if (buyback && (token.buybackPendingLamports ?? 0) + fornum >= MIN_BUYBACK_LAMPORTS) {
-    after(async () => {
-      await runBuyback(token.id);
-    });
+  if (perToken && treasury && fornum > 0 && hasDatabase && token.mint !== platformMint()) {
+    try {
+      await recordPendingCredit({
+        tokenId: token.id,
+        mint: token.mint,
+        signature: sent.signature,
+        treasury,
+        mainMint: platformMint(),
+        expectedLamports: fornum,
+      });
+      // confirms the credit once it is final and buys when the ledger allows
+      after(async () => {
+        await runBuybackPass(45_000);
+      });
+    } catch (err) {
+      // the payout is done and recorded; the credit can be added by hand from the signature
+      console.error(`[claim] ${token.id} could not record the treasury credit ${sent.signature}`, err);
+    }
   }
 
   return Response.json({

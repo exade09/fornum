@@ -2,7 +2,7 @@ import { sql } from "@/lib/db/client";
 import { ensureSchema } from "@/lib/db/migrate";
 import { siteConfig } from "@/lib/config";
 import { DEMO_CLAIMS, DEMO_TOKENS } from "@/lib/demo-data";
-import type { Buyback, Claim, LaunchRequest, Token } from "@/lib/types";
+import type { Claim, LaunchRequest, Token } from "@/lib/types";
 import { tightenMask } from "@/lib/auth/verify";
 
 /**
@@ -43,7 +43,6 @@ async function safeRead<T>(what: string, run: () => Promise<T>, fallback: T) {
 const mem = {
   tokens: [] as Token[],
   claims: [] as Claim[],
-  buybacks: [] as Buyback[],
   requests: [] as LaunchRequest[],
   seeded: false,
 };
@@ -79,7 +78,6 @@ type TokenRow = {
   fees_accrued_lamports: string;
   fees_claimed_lamports: string;
   fees_fornum_lamports?: string | null;
-  buyback_pending_lamports?: string | null;
   market_cap_usd: string;
   holders: number;
   created_at: Date;
@@ -105,7 +103,6 @@ function toToken(r: TokenRow): Token {
     feesAccruedLamports: Number(r.fees_accrued_lamports),
     feesClaimedLamports: Number(r.fees_claimed_lamports),
     fornumTakenLamports: Number(r.fees_fornum_lamports ?? 0),
-    buybackPendingLamports: Number(r.buyback_pending_lamports ?? 0),
     marketCapUsd: Number(r.market_cap_usd),
     holders: r.holders,
     createdAt: r.created_at.toISOString(),
@@ -336,16 +333,11 @@ export async function claimsForToken(tokenId: string): Promise<Claim[]> {
  */
 export async function recordClaim(
   c: Omit<Claim, "createdAt">,
-  split: {
-    fornumLamports?: number;
-    baselineBumpLamports?: number;
-    buybackLamports?: number;
-  } = {},
+  split: { fornumLamports?: number; baselineBumpLamports?: number } = {},
 ): Promise<Claim> {
   const created = new Date().toISOString();
   const fornum = split.fornumLamports ?? 0;
   const bump = split.baselineBumpLamports ?? 0;
-  const buyback = split.buybackLamports ?? 0;
 
   if (!sql) {
     seed();
@@ -356,7 +348,6 @@ export async function recordClaim(
       t.feesClaimedLamports += c.amountLamports;
       t.fornumTakenLamports = (t.fornumTakenLamports ?? 0) + fornum;
       t.baselineLamports += bump;
-      t.buybackPendingLamports = (t.buybackPendingLamports ?? 0) + buyback;
     }
     return claim;
   }
@@ -372,188 +363,13 @@ export async function recordClaim(
       update tokens
          set fees_claimed_lamports = fees_claimed_lamports + ${c.amountLamports},
              fees_fornum_lamports = fees_fornum_lamports + ${fornum},
-             baseline_lamports = baseline_lamports + ${bump},
-             buyback_pending_lamports = buyback_pending_lamports + ${buyback}
+             baseline_lamports = baseline_lamports + ${bump}
        where id = ${c.tokenId}
     `;
     return inserted;
   });
 
   return toClaim(row as unknown as ClaimRow);
-}
-
-/* ------------------------------------------------------------------ */
-/* Buybacks of the Fornum token                                        */
-/* ------------------------------------------------------------------ */
-
-type BuybackRow = {
-  id: string;
-  token_id: string;
-  spent_lamports: string;
-  tokens_bought: string;
-  tokens_burned: string;
-  decimals: number;
-  buy_tx: string;
-  burn_tx: string | null;
-  created_at: Date;
-};
-
-function toBuyback(r: BuybackRow): Buyback {
-  return {
-    id: r.id,
-    tokenId: r.token_id,
-    spentLamports: Number(r.spent_lamports),
-    tokensBought: r.tokens_bought,
-    tokensBurned: r.tokens_burned,
-    decimals: r.decimals,
-    buyTx: r.buy_tx,
-    burnTx: r.burn_tx,
-    createdAt: r.created_at.toISOString(),
-  };
-}
-
-export async function listBuybacks(limit = 50): Promise<Buyback[]> {
-  if (!sql) {
-    seed();
-    return mem.buybacks.slice(0, limit);
-  }
-  return safeRead(
-    "buybacks",
-    async () => {
-      await ensureSchema();
-      const rows = await sql!<BuybackRow[]>`
-        select * from buybacks order by created_at desc limit ${limit}
-      `;
-      return rows.map(toBuyback);
-    },
-    [],
-  );
-}
-
-/** Buys whose tokens are still on a launch wallet because the burn failed */
-export async function unburnedBuybacks(): Promise<Buyback[]> {
-  if (!sql) {
-    seed();
-    return mem.buybacks.filter((b) => !b.burnTx);
-  }
-  await ensureSchema();
-  const rows = await sql<BuybackRow[]>`
-    select * from buybacks where burn_tx is null order by created_at
-  `;
-  return rows.map(toBuyback);
-}
-
-/**
- * A buy went through
- *
- * What it cost left the launch wallet, so the wallet's line comes down by the
- * same amount and the token's other figures stay right, and the waiting share
- * shrinks by it. Both in one transaction with the row
- */
-export async function recordBuyback(b: Omit<Buyback, "createdAt">): Promise<Buyback> {
-  const created = new Date().toISOString();
-  if (!sql) {
-    seed();
-    const row: Buyback = { ...b, createdAt: created };
-    mem.buybacks.unshift(row);
-    const t = mem.tokens.find((x) => x.id === b.tokenId);
-    if (t) {
-      t.baselineLamports -= b.spentLamports;
-      t.buybackPendingLamports = Math.max((t.buybackPendingLamports ?? 0) - b.spentLamports, 0);
-    }
-    return row;
-  }
-
-  await ensureSchema();
-  const [row] = await sql.begin(async (tx) => {
-    const inserted = await tx<BuybackRow[]>`
-      insert into buybacks (id, token_id, spent_lamports, tokens_bought, tokens_burned, decimals, buy_tx, burn_tx)
-      values (${b.id}, ${b.tokenId}, ${b.spentLamports}, ${b.tokensBought}, ${b.tokensBurned},
-              ${b.decimals}, ${b.buyTx}, ${b.burnTx})
-      returning *
-    `;
-    await tx`
-      update tokens
-         set baseline_lamports = baseline_lamports - ${b.spentLamports},
-             buyback_pending_lamports = greatest(buyback_pending_lamports - ${b.spentLamports}, 0)
-       where id = ${b.tokenId}
-    `;
-    return inserted;
-  });
-  return toBuyback(row as unknown as BuybackRow);
-}
-
-/** A burn that failed the first time went through later */
-export async function recordBurn(
-  id: string,
-  burn: { tokensBurned: string; burnTx: string; extraSpentLamports: number },
-) {
-  if (!sql) {
-    seed();
-    const b = mem.buybacks.find((x) => x.id === id);
-    if (!b) return;
-    b.tokensBurned = burn.tokensBurned;
-    b.burnTx = burn.burnTx;
-    b.spentLamports += burn.extraSpentLamports;
-    const t = mem.tokens.find((x) => x.id === b.tokenId);
-    if (t) t.baselineLamports -= burn.extraSpentLamports;
-    return;
-  }
-  await ensureSchema();
-  await sql.begin(async (tx) => {
-    const [b] = await tx<{ token_id: string }[]>`
-      update buybacks
-         set tokens_burned = ${burn.tokensBurned},
-             burn_tx = ${burn.burnTx},
-             spent_lamports = spent_lamports + ${burn.extraSpentLamports}
-       where id = ${id}
-       returning token_id
-    `;
-    if (b) {
-      await tx`
-        update tokens set baseline_lamports = baseline_lamports - ${burn.extraSpentLamports}
-         where id = ${b.token_id}
-      `;
-    }
-  });
-}
-
-/** Everything bought back so far, for the admin page and the home page */
-export async function buybackTotals(): Promise<{
-  count: number;
-  spentLamports: number;
-  burned: string;
-  decimals: number;
-}> {
-  if (!sql) {
-    seed();
-    return {
-      count: mem.buybacks.length,
-      spentLamports: mem.buybacks.reduce((a, b) => a + b.spentLamports, 0),
-      burned: mem.buybacks.reduce((a, b) => a + BigInt(b.tokensBurned), BigInt(0)).toString(),
-      decimals: mem.buybacks[0]?.decimals ?? 6,
-    };
-  }
-  return safeRead(
-    "buyback totals",
-    async () => {
-      await ensureSchema();
-      const [r] = await sql!<{ count: string; spent: string | null; burned: string | null; decimals: number | null }[]>`
-        select count(*)::text as count,
-               sum(spent_lamports)::text as spent,
-               sum(tokens_burned::numeric)::text as burned,
-               max(decimals) as decimals
-          from buybacks
-      `;
-      return {
-        count: Number(r?.count ?? 0),
-        spentLamports: Number(r?.spent ?? 0),
-        burned: (r?.burned ?? "0").split(".")[0],
-        decimals: r?.decimals ?? 6,
-      };
-    },
-    { count: 0, spentLamports: 0, burned: "0", decimals: 6 },
-  );
 }
 
 /* ------------------------------------------------------------------ */

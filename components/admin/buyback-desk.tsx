@@ -5,50 +5,75 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 
+export type BuybackJobView = {
+  id: string;
+  state: string;
+  market: string | null;
+  signature: string | null;
+  reserved: string;
+  maxQuote: string | null;
+  spent: string | null;
+  network: string | null;
+  burned: string | null;
+  error: string | null;
+  createdAt: string;
+};
+
 /**
- * Buyback of the Fornum token
+ * The buyback of the Fornum token
  *
- * What Fornum's share has bought and burned so far, what is still waiting on
- * launch wallets, and a button for the runs that did not go through on their
- * own after a claim
+ * The treasury's ledger, the last jobs with their states, and a button for a
+ * pass now. A job shows as burned only once its finalized receipt shows the
+ * burn; simulated, signed and submitted are shown as what they are
  */
 export function BuybackDesk({
+  enabled,
+  treasury,
   mint,
-  waiting,
+  problems,
+  available,
+  reserved,
+  pending,
+  manual,
   spent,
+  network,
   burned,
-  count,
+  jobs,
 }: {
+  enabled: boolean;
+  treasury: string | null;
   mint: string | null;
-  waiting: string;
+  problems: string[];
+  available: string;
+  reserved: string;
+  pending: number;
+  manual: number;
   spent: string;
+  network: string;
   burned: string;
-  count: number;
+  jobs: BuybackJobView[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState("");
 
   async function run() {
     if (busy) return;
     setBusy(true);
-    setMessage("");
     setError("");
-
+    setLog([]);
     const res = await fetch("/api/admin/buyback", { method: "POST" });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
-
     if (!res.ok) {
-      setError(body.error ?? "Could not run the buybacks");
+      setError(body.error ?? "The pass did not run");
       return;
     }
-    const results = (body.results ?? []) as { ok: boolean; error?: string }[];
-    const done = results.filter((r) => r.ok).length;
-    const failed = results.filter((r) => !r.ok);
-    if (results.length === 0) setMessage("Nothing was ready to buy");
-    else setMessage(`${done} done${failed.length ? `, ${failed.length} failed: ${failed[0].error}` : ""}`);
+    const lines = ((body.log ?? []) as { step: string; detail?: string }[]).map(
+      (l) => `${l.step}${l.detail ? `: ${l.detail}` : ""}`,
+    );
+    setLog(lines.length ? lines : ["nothing to do"]);
     router.refresh();
   }
 
@@ -57,32 +82,83 @@ export function BuybackDesk({
       <div className="flex flex-col gap-1">
         <h2 className="font-display text-xl font-normal text-primary">Buyback</h2>
         <p className="text-sm text-secondary">
-          Fornum&apos;s 20% of every other coin buys the Fornum token and burns it, right after
-          each claim. A share under 0.001 SOL waits for the next one
+          The treasury&apos;s 20% of other coins buys the Fornum token and burns it in the same
+          transaction. Only amounts confirmed by a finalized claim receipt are spent
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Stat label="Fornum token" value={mint ?? "FORNUM_TOKEN_MINT is not set"} ok={Boolean(mint)} mono />
-        <Stat label="Waiting on launch wallets" value={waiting} ok />
-        <Stat label="Spent on buybacks" value={`${spent} in ${count} ${count === 1 ? "buy" : "buys"}`} ok />
-        <Stat label="Tokens burned" value={burned} ok />
+        <Stat label="Sending" value={enabled ? "on" : "off (BUYBACK_ENABLED)"} ok={enabled} />
+        <Stat label="Treasury" value={treasury ?? "TREASURY_WALLET is not set"} ok={Boolean(treasury)} mono />
+        <Stat label="Fornum token" value={mint ?? "PLATFORM_TOKEN_MINT is not set"} ok={Boolean(mint)} mono />
+        <Stat label="In the ledger" value={`${available} available, ${reserved} reserved`} ok />
+        <Stat
+          label="Claim receipts"
+          value={`${pending} waiting for finality, ${manual} for manual review`}
+          ok={manual === 0}
+        />
+        <Stat label="Bought back" value={`${spent} on the market, ${network} network`} ok />
+        <Stat label="Burned" value={burned} ok />
       </div>
 
+      {problems.length > 0 && (
+        <ul className="flex flex-col gap-1 text-xs text-queued">
+          {problems.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+      )}
+
+      {jobs.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-bold tracking-wider text-secondary uppercase">Last jobs</span>
+          {jobs.map((j) => (
+            <div key={j.id} className="flex flex-col gap-0.5 rounded-lg border border-primary/[0.06] p-3 text-xs">
+              <span className={cn("font-bold", j.state === "finalized" ? "text-brand" : j.state === "failed" ? "text-error" : "text-queued")}>
+                {j.state}
+                {j.market ? ` · ${j.market}` : ""} · {new Date(j.createdAt).toLocaleString("en-US")}
+              </span>
+              <span className="text-secondary">
+                reserved {j.reserved}
+                {j.maxQuote ? `, ceiling ${j.maxQuote}` : ""}
+                {j.spent ? `, spent ${j.spent}` : ""}
+                {j.network ? `, network ${j.network}` : ""}
+                {j.burned ? `, burned ${j.burned}` : ""}
+              </span>
+              {j.signature && (
+                <a
+                  href={`https://solscan.io/tx/${j.signature}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="truncate font-mono text-secondary underline"
+                >
+                  {j.signature}
+                </a>
+              )}
+              {j.error && <span className="text-queued">{j.error}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
       {error && <p className="text-xs text-error">{error}</p>}
-      {message && <p className="text-xs text-secondary">{message}</p>}
+      {log.length > 0 && (
+        <pre className="max-h-48 overflow-auto rounded-lg bg-field p-3 text-[11px] whitespace-pre-wrap text-secondary">
+          {log.join("\n")}
+        </pre>
+      )}
 
       <div>
         <button
           type="button"
           onClick={run}
-          disabled={!mint || busy}
+          disabled={busy}
           className={cn(
             "flex h-10 items-center rounded-full bg-primary px-5 text-sm font-bold text-background transition-colors hover:bg-primary-hover",
             "disabled:cursor-not-allowed disabled:opacity-40",
           )}
         >
-          {busy ? "Buying" : "Run waiting buybacks"}
+          {busy ? "Running" : "Run a pass now"}
         </button>
       </div>
     </Card>

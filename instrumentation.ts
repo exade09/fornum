@@ -14,4 +14,11 @@ export async function register() {
   } catch (err) {
     console.error("[db] schema check failed", err);
   }
+  // the buyback settings are checked once at start, so a bad value shows in
+  // the logs right away and not first at the next claim
+  const { buybackConfig } = await import("@/lib/buyback/config");
+  const { settings, problems } = buybackConfig();
+  if (problems.length > 0 && (settings.enabled || settings.treasuryWallet)) {
+    console.error("[buyback] settings:", problems.join("; "));
+  }
 }

@@ -47,11 +47,6 @@ export type Token = {
   feesClaimedLamports: number;
   /** Fornum's 20% of what has been claimed, split off at each claim */
   fornumTakenLamports?: number;
-  /**
-   * The part of that 20% still on the launch wallet, waiting to buy the
-   * Fornum token. It leaves the wallet when the buy runs
-   */
-  buybackPendingLamports?: number;
 
   marketCapUsd: number;
   holders: number;
@@ -133,17 +128,3 @@ export function feeRecipientHash(t: Token) {
 export function feeRecipientMasked(t: Token) {
   return t.assigneeMasked ?? t.ownerMasked;
 }
-
-/** One buy of the Fornum token paid by Fornum's share of a coin's fees */
-export type Buyback = {
-  id: string;
-  tokenId: string;
-  spentLamports: number;
-  /** raw amounts, as strings because they can outgrow a JS number */
-  tokensBought: string;
-  tokensBurned: string;
-  decimals: number;
-  buyTx: string;
-  burnTx: string | null;
-  createdAt: string;
-};

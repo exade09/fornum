@@ -7,7 +7,8 @@ import { TokenRemover } from "@/components/admin/token-remover";
 import { SignInDesk } from "@/components/admin/sign-in-desk";
 import { TokenImages } from "@/components/admin/token-images";
 import { BuybackDesk } from "@/components/admin/buyback-desk";
-import { fornumTokenMint } from "@/lib/pump/buyback";
+import { buybackConfig } from "@/lib/buyback/config";
+import { ledgerSummary } from "@/lib/buyback/ledger";
 import { AdminLogin, AdminLogout } from "@/components/admin/admin-login";
 import { adminSetupProblem, isAdmin } from "@/lib/auth/admin";
 import { ipfsProblem } from "@/lib/pump/ipfs";
@@ -15,7 +16,7 @@ import { launchFleet } from "@/lib/launch-fleet";
 import { Card } from "@/components/ui/primitives";
 import { siteConfig } from "@/lib/config";
 import { hasDatabase } from "@/lib/db/client";
-import { buybackTotals, dbError } from "@/lib/db/store";
+import { dbError } from "@/lib/db/store";
 import { liveTokens } from "@/lib/tokens";
 import { getStats, sol } from "@/lib/data";
 import { balanceOf, launchWalletAddress } from "@/lib/solana/wallet";
@@ -48,8 +49,12 @@ export default async function AdminPage() {
   // state of every launch wallet: derived, balances read in one call, each one
   // matched against what has actually been launched
   const wallets = await launchFleet();
-  const buybacks = await buybackTotals();
-  const buybackWaiting = tokens.reduce((a, t) => a + (t.buybackPendingLamports ?? 0), 0);
+
+  const buyback = buybackConfig();
+  const ledger = await ledgerSummary().catch((err) => {
+    buyback.problems.push(`ledger: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  });
 
   let balance: number | null = null;
   if (wallet) {
@@ -124,11 +129,30 @@ export default async function AdminPage() {
         <TokenImages tokens={tokens} />
 
         <BuybackDesk
-          mint={fornumTokenMint()}
-          waiting={sol(buybackWaiting)}
-          spent={sol(buybacks.spentLamports)}
-          burned={tokenAmount(buybacks.burned, buybacks.decimals)}
-          count={buybacks.count}
+          enabled={buyback.settings.enabled}
+          treasury={buyback.settings.treasuryWallet}
+          mint={buyback.settings.mainMint}
+          problems={buyback.problems}
+          available={sol(ledger?.availableLamports ?? 0)}
+          reserved={sol(ledger?.reservedLamports ?? 0)}
+          pending={ledger?.pendingCredits ?? 0}
+          manual={ledger?.manualCredits ?? 0}
+          spent={sol(ledger?.spentLamports ?? 0)}
+          network={exactSol(ledger?.networkLamports ?? 0)}
+          burned={tokenAmount(ledger?.burned ?? "0", ledger?.decimals ?? 6)}
+          jobs={(ledger?.jobs ?? []).map((j) => ({
+            id: j.id,
+            state: j.state,
+            market: j.market,
+            signature: j.signature,
+            reserved: exactSol(j.reservedLamports),
+            maxQuote: j.maxQuoteLamports === null ? null : exactSol(j.maxQuoteLamports),
+            spent: j.actualMarketLamports === null ? null : exactSol(j.actualMarketLamports),
+            network: j.actualNetworkLamports === null ? null : exactSol(j.actualNetworkLamports),
+            burned: j.burnedAmount === null ? null : tokenAmount(j.burnedAmount, j.decimals ?? 6),
+            error: j.error,
+            createdAt: j.createdAt,
+          }))}
         />
 
         <FeesRecorder tokens={sharedWalletTokens} />
@@ -141,11 +165,15 @@ export default async function AdminPage() {
   );
 }
 
-/** A raw token amount in whole tokens, with thousands separators */
+/** Lamports as SOL with every digit that matters, for small fees */
+function exactSol(lamports: number) {
+  return `${(lamports / 1e9).toFixed(9).replace(/0+$/, "").replace(/\.$/, "")} SOL`;
+}
+
+/** A raw token amount in whole tokens */
 function tokenAmount(raw: string, decimals: number) {
   const n = BigInt(raw || "0");
-  const unit = BigInt(10) ** BigInt(decimals);
-  return (n / unit).toLocaleString("en-US");
+  return (n / BigInt(10) ** BigInt(decimals)).toLocaleString("en-US");
 }
 
 function Row({

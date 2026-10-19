@@ -85,19 +85,12 @@ const TABLES = [
     created_at timestamptz not null default now()
   )`,
   `create index if not exists sign_in_links_expires on sign_in_links (expires_at)`,
-  `create table if not exists buybacks (
-    id text primary key,
-    token_id text not null references tokens (id) on delete cascade,
-    spent_lamports bigint not null,
-    tokens_bought text not null,
-    tokens_burned text not null default '0',
-    decimals integer not null default 6,
-    buy_tx text not null,
-    burn_tx text,
-    created_at timestamptz not null default now()
-  )`,
-  `create index if not exists buybacks_created_at_idx on buybacks (created_at desc)`,
-  `create index if not exists buybacks_unburned_idx on buybacks (token_id) where burn_tx is null`,
+  `create table if not exists treasury_credits ( id text primary key, token_id text references tokens (id) on delete set null, mint text not null, signature text not null unique, treasury text not null, main_mint text, expected_lamports bigint not null, confirmed_lamports bigint, allocated_lamports bigint not null default 0, state text not null default 'pending', note text, created_at timestamptz not null default now(), confirmed_at timestamptz, check (allocated_lamports >= 0), check (confirmed_lamports is null or allocated_lamports <= confirmed_lamports) )`,
+  `create index if not exists treasury_credits_open on treasury_credits (state, created_at)`,
+  `create table if not exists buyback_jobs ( id text primary key, state text not null default 'prepared', treasury text not null, main_mint text not null, market text, reserved_lamports bigint not null, max_quote_lamports bigint, token_amount text, decimals integer, signature text unique, signed_tx text, last_valid_block_height bigint, expected_network_lamports bigint, opened_accounts text, actual_market_lamports bigint, actual_network_lamports bigint, burned_amount text, error text, lease_owner text, lease_until timestamptz, attempts integer not null default 0, created_at timestamptz not null default now(), updated_at timestamptz not null default now(), finalized_at timestamptz, check (reserved_lamports > 0) )`,
+  `create unique index if not exists buyback_jobs_one_open on buyback_jobs ((true)) where state in ('prepared', 'signed', 'submitted')`,
+  `create index if not exists buyback_jobs_created on buyback_jobs (created_at desc)`,
+  `create table if not exists buyback_allocations ( job_id text not null references buyback_jobs (id) on delete cascade, credit_id text not null references treasury_credits (id) on delete cascade, lamports bigint not null check (lamports > 0), seq integer not null, primary key (job_id, credit_id) )`,
 ];
 
 /** Columns added to tokens after it was first created, by later migrations */
@@ -106,7 +99,6 @@ const TOKEN_COLUMNS: Record<string, string> = {
   baseline_lamports: "bigint not null default 0",
   image_url: "text",
   fees_fornum_lamports: "bigint not null default 0",
-  buyback_pending_lamports: "bigint not null default 0",
 };
 
 let done: Promise<void> | null = null;

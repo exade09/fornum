@@ -75,7 +75,7 @@ const SECTIONS: Section[] = [
     title: "How the fees are split",
     body: [
       "Every coin is created from a launch wallet of its own, so pump.fun pays the coin's creator share to that wallet and nowhere else. Of everything the coin earns, eighty percent is yours and twenty percent is Fornum's",
-      "The split happens every time you claim: your part goes to the address you give in one Solana transaction, and Fornum's part stays on the coin's launch wallet to buy back the Fornum token straight after. Every payout is on chain and listed on the token page",
+      "The split happens every time you claim, in the same Solana transaction: your part goes to the address you give, Fornum's part goes to Fornum. Every payout is on chain and listed on the token page",
     ],
     figure: "split",
   },
@@ -83,9 +83,9 @@ const SECTIONS: Section[] = [
     id: "treasury",
     title: "Where the twenty percent goes",
     body: [
-      "The Fornum share is not kept. Right after each claim, the twenty percent buys the Fornum token on the open market, paid from the launch wallet of the coin that earned it, so it never passes through an account of ours. A share too small to be worth the network fees waits for the next claim",
-      "Everything bought that way is burned. That supply leaves circulation and cannot come back, so the fees the service earns end up reducing the supply of its own token rather than sitting in an account",
-      "The buy and the burn are both ordinary Solana transactions. Anyone can open a coin's launch wallet and check that its share went back into the Fornum token",
+      "Fornum's twenty percent goes to the Fornum treasury at every claim. Once that payment is final on chain, it is counted toward buying back the Fornum token. Nothing else the treasury holds is spent that way",
+      "The treasury buys the Fornum token on pump.fun and burns exactly what it bought, in the same transaction. If the buy or the burn fails, neither happens. The supply that is burned leaves circulation for good",
+      "Every buyback is an ordinary Solana transaction from the treasury address, so anyone can check what came in and what was burned. The network fees are paid from a separate reserve and are not taken out of anyone's share",
     ],
   },
   {

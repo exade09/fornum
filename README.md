@@ -94,13 +94,39 @@ through PumpPortal from the first funded, unused launch wallet, and the mint is
 recorded by itself. A JSON body with `mint` still records a coin deployed some
 other way.
 
-Fornum's 20% of a claim buys back the Fornum token (`FORNUM_TOKEN_MINT`). It
-stays on the coin's launch wallet at the claim, and right after the answer the
-same wallet buys the token through PumpPortal and burns exactly what it bought,
-closing the token account so its rent comes back. A share under 0.001 SOL
-waits for the next claim. Runs that did not go through are retried with the
-button on `/admin` (`POST /api/admin/buyback`). The Fornum token's own fees are
-left out, so it never buys itself.
+## Buyback
+
+Fornum's 20% of a claim goes to the treasury (`TREASURY_WALLET`) in the claim
+transaction. A pass of the buyback worker (`lib/buyback/`) then:
+
+1. reads the claim's finalized receipt and writes what actually reached the
+   treasury into `treasury_credits`. Anything unusual (another amount, the
+   treasury paying the fee, a failed transaction) goes to manual review
+   instead of being guessed. The Fornum token's own fees are left out;
+2. once the confirmed credits reach `BUYBACK_MIN_LAMPORTS`, reserves up to
+   `BUYBACK_MAX_LAMPORTS` of them for one job, under an advisory lock, with at
+   most one open job;
+3. builds one transaction with pump.fun's SDKs: idempotent token account, a buy
+   of an exact number of base units with a SOL ceiling inside the budget
+   (`buy_v3` on the SOL curve, `buy` in the canonical PumpSwap SOL pool), and
+   `BurnChecked` of that same number. It checks the mint (token program, no
+   freeze authority, no Token-2022 extension beyond metadata) and the market
+   (SOL quote, no mayhem or cashback, matching creators), then simulates and
+   refuses unless the market leg fits the budget, the network cost and the
+   daily network budget fit their limits, the treasury keeps its reserve and
+   its token balance ends where it started;
+4. seals the signed bytes into `buyback_jobs` before the first send, then
+   settles the job only on the finalized receipt. An unknown result is
+   resolved by its signature: sent again while the blockhash is valid, failed
+   once it has expired, never replaced by a new buy. What was not spent goes
+   back to the credits.
+
+Passes run after each claim, from the button on `/admin`
+(`POST /api/admin/buyback`) and daily from Vercel Cron (`/api/cron/buyback`,
+`CRON_SECRET`). `BUYBACK_ENABLED=false`, the default, stops new jobs and sends
+but not reconciliation. `npm test` covers the rules, and
+`npm run buyback:dry-run -- <lamports> [mint] [address]` builds and simulates
+the transaction against mainnet without sending it.
 
 `/admin` is behind a password. Only its scrypt hash is kept, in
 `ADMIN_PASSWORD_HASH`, made with `node scripts/admin-password.mts`. The

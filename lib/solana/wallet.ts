@@ -59,17 +59,6 @@ export function launchKeypair(): Keypair | null {
   }
 }
 
-/**
- * Where Fornum's 20% goes at each claim
- *
- * FORNUM_TREASURY on the host. Without it the share stays on the launch
- * wallet, recorded as Fornum's, and is never paid out to the owner
- */
-export function treasuryAddress(): string | null {
-  const v = process.env.FORNUM_TREASURY?.trim();
-  return v && isValidAddress(v) ? v : null;
-}
-
 export function launchWalletAddress(): string | null {
   return launchKeypair()?.publicKey.toBase58() ?? null;
 }

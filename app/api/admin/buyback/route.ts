@@ -1,24 +1,18 @@
 import { refuseUnlessAdmin } from "@/lib/auth/admin";
-import { runPendingBuybacks } from "@/lib/buyback";
-import { fornumTokenMint } from "@/lib/pump/buyback";
+import { runBuybackPass } from "@/lib/buyback/worker";
 
 /**
- * Run every buyback that is waiting
+ * One buyback pass, from the button on /admin
  *
- * A claim starts its own buyback right after it answers, so this is for the
- * ones that did not go through then: a failed buy, a burn to try again, or
- * shares that were too small on their own
+ * Confirms claim receipts, moves the open job and starts a new one when the
+ * ledger allows. With BUYBACK_ENABLED off it still reconciles, it only does
+ * not start or send anything
  */
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const refused = await refuseUnlessAdmin(request);
   if (refused) return refused;
-
-  if (!fornumTokenMint()) {
-    return Response.json({ error: "FORNUM_TOKEN_MINT is not set" }, { status: 503 });
-  }
-
-  const results = await runPendingBuybacks();
-  return Response.json({ results });
+  const { log } = await runBuybackPass(45_000);
+  return Response.json({ log });
 }
