@@ -54,7 +54,7 @@ reached from the footer or from a card.
 
 Every launch, confirmation and payout goes through one WhatsApp thread, so the
 number is the largest element on the home page rather than a footnote. It is
-+1 (605) 981-6581, and it lives in `content/site-config.json` under `whatsapp`.
++1 (631) 660-1838, and it lives in `content/site-config.json` under `whatsapp`.
 `display` is what the site prints, `e164` is what `wa.me` links are built from,
 digits only and no plus. Change one and you have to change the other, or the
 number on screen stops matching the thread it opens.

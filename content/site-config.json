@@ -10,8 +10,8 @@
     "text": ""
   },
   "whatsapp": {
-    "display": "+1 (605) 981-6581",
-    "e164": "16059816581",
+    "display": "+1 (631) 660-1838",
+    "e164": "16316601838",
     "_comment": "The live Fornum number. display is what the site shows, e164 is what wa.me links use, digits only and no plus. Both must point at the same line."
   },
   "demoData": false

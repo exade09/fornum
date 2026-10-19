@@ -134,7 +134,7 @@ not us.
 Start
 
 Text Fornum on WhatsApp
-+1 (605) 981-6581
++1 (631) 660-1838
 
 Send a name, a ticker and a picture. The mint comes back in the thread.
 ```
