@@ -1,9 +1,8 @@
 import { refuseUnlessAdmin } from "@/lib/auth/admin";
-import { isValidAddress } from "@/lib/solana/wallet";
 import { setSetting } from "@/lib/settings";
 
 /**
- * Sets the contract address in the site header, or clears it with an empty
+ * Sets the CA text in the site header, any text, or clears it with an empty
  * value. Every page reads it per request, so it shows straight away
  */
 export async function POST(request: Request) {
@@ -11,10 +10,8 @@ export async function POST(request: Request) {
   if (refused) return refused;
 
   const body = (await request.json().catch(() => ({}))) as { ca?: string };
-  const ca = (body.ca ?? "").trim();
-  if (ca && !isValidAddress(ca)) {
-    return Response.json({ error: "That is not a Solana address" }, { status: 400 });
-  }
+  // any text: an address, or a word like "soon"; only kept to a sane length
+  const ca = (body.ca ?? "").trim().slice(0, 200);
   try {
     await setSetting("contract_address", ca || null);
   } catch (err) {

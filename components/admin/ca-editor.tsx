@@ -54,7 +54,7 @@ export function CaEditor({ current }: { current: string | null }) {
             setValue(e.target.value);
             setSaved(false);
           }}
-          placeholder="Token mint address"
+          placeholder="Any text, for example the token mint"
           spellCheck={false}
           className="h-10 w-full min-w-0 flex-1 rounded-lg border border-primary/[0.06] bg-field px-3 font-mono text-xs text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
         />
