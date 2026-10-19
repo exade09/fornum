@@ -1,6 +1,9 @@
 import "server-only";
 import { listTokens, setAccrued } from "@/lib/db/store";
 import { readWalletFees } from "@/lib/pump/fees";
+import { feeSharingConfigPda } from "@pump-fun/pump-sdk";
+import { PublicKey } from "@solana/web3.js";
+import { nativeEarned } from "@/lib/pump/share-rules";
 import type { Token } from "@/lib/types";
 
 /**
@@ -19,6 +22,12 @@ import type { Token } from "@/lib/types";
  * the funding wallet may, the per creator part and what was collected into the
  * wallet go to the oldest coin on it and the others count only their own part,
  * so nothing is counted twice.
+ *
+ * A coin with its split locked on chain is paid differently: pump.fun keeps
+ * its fees in its sharing config's vaults, and a distribution pays 80% to the
+ * launch wallet and 20% to the treasury directly. So what reached the wallet
+ * is scaled back up to the whole (see nativeEarned), and the sharing
+ * config's vaults are this coin's alone.
  *
  * The figure is written back to the row, so totals and lists stay right even
  * when the chain is slow, and it is cached briefly so a busy page does not
@@ -50,7 +59,13 @@ export async function withLiveFees(tokens: Token[]): Promise<Token[]> {
 
   if (toRead.length > 0) {
     try {
-      const fees = await readWalletFees(toRead.map((t) => ({ wallet: t.launchWallet, mint: t.mint })));
+      const fees = await readWalletFees(
+        toRead.map((t) => ({
+          wallet: t.launchWallet,
+          mint: t.mint,
+          creator: t.feeSharing ? feeSharingConfigPda(new PublicKey(t.mint)).toBase58() : undefined,
+        })),
+      );
 
       const byWallet = new Map<string, Token[]>();
       for (const t of toRead) byWallet.set(t.launchWallet, [...(byWallet.get(t.launchWallet) ?? []), t]);
@@ -60,6 +75,18 @@ export async function withLiveFees(tokens: Token[]): Promise<Token[]> {
         group.forEach((t, i) => {
           const f = fees.get(t.mint);
           if (!f) return;
+          if (t.feeSharing) {
+            const accrued = nativeEarned({
+              uncollectedLamports: f.uncollectedLamports,
+              walletAboveLineLamports: f.walletLamports - t.baselineLamports,
+              claimedLamports: t.feesClaimedLamports,
+            });
+            cache.set(t.id, { at: now, accrued });
+            if (Math.abs(accrued - t.feesAccruedLamports) >= 1_000) {
+              setAccrued(t.id, accrued).catch((err) => console.error("[fees] could not store", t.id, err));
+            }
+            return;
+          }
           const first = i === 0;
           const collected = first ? Math.max(f.walletLamports - t.baselineLamports, 0) : 0;
           const uncollected = f.ownLamports + (first ? f.sharedLamports : 0);

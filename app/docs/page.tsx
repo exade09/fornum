@@ -74,8 +74,8 @@ const SECTIONS: Section[] = [
     id: "split",
     title: "How the fees are split",
     body: [
-      "Every coin is created from a launch wallet of its own, so pump.fun pays the coin's creator share to that wallet and nowhere else. Of everything the coin earns, eighty percent is yours and twenty percent is Fornum's",
-      "The split happens every time you claim, in the same Solana transaction: your part goes to the address you give, Fornum's part goes to Fornum. Every payout is on chain and listed on the token page",
+      "Of everything the coin earns, eighty percent is yours and twenty percent is Fornum's. The split is written into the coin by pump.fun's own fee sharing in the same transaction that creates it, and locked there: nobody can change it afterwards, Fornum included, and anyone can read it on chain",
+      "pump.fun pays the two parts itself, eighty percent to the launch wallet made for your coin and twenty percent to the Fornum treasury. When you claim, everything your coin's wallet received goes to the address you give. Every payout is on chain and listed on the token page",
     ],
     figure: "split",
   },

@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { readSession } from "@/lib/auth/session";
-import { getToken, getWallet, recordClaim } from "@/lib/db/store";
+import {
+  acquireClaimLock,
+  getToken,
+  getWallet,
+  recordClaim,
+  releaseClaimLock,
+  setFeeSharing,
+} from "@/lib/db/store";
+import type { Keypair } from "@solana/web3.js";
 import {
   FEE_LAMPORTS,
   RENT_EXEMPT_LAMPORTS,
@@ -14,7 +22,9 @@ import {
 import { walletAt } from "@/lib/solana/launch-wallets";
 import { MIN_COLLECT_LAMPORTS, collectCreatorFees, readWalletFees } from "@/lib/pump/fees";
 import { forgetFees } from "@/lib/tokens";
-import { platformMint, treasuryWallet } from "@/lib/buyback/config";
+import { buybackConfig, platformMint, treasuryWallet } from "@/lib/buyback/config";
+import { distributeNative } from "@/lib/pump/distribute";
+import { recheckLaunch } from "@/lib/pump/native-launch";
 import { recordPendingCredit } from "@/lib/buyback/ledger";
 import { runBuybackPass } from "@/lib/buyback/worker";
 import { hasDatabase } from "@/lib/db/client";
@@ -23,6 +33,7 @@ import {
   claimableLamports,
   feeRecipientHash,
   ownerShare,
+  type Token,
 } from "@/lib/types";
 
 /**
@@ -103,15 +114,65 @@ export async function POST(request: Request) {
     );
   }
 
+  // one claim per coin at a time, so two clicks cannot pay the same fees twice
+  const lockOwner = randomUUID();
+  if (!(await acquireClaimLock(token.id, lockOwner))) {
+    return Response.json(
+      { error: "A claim for this token is already running, try again in a minute" },
+      { status: 409 },
+    );
+  }
+  try {
+    return await settle(token, signer, perToken, wallet.trim(), treasury);
+  } finally {
+    await releaseClaimLock(token.id, lockOwner).catch(() => {});
+  }
+}
+
+async function settle(
+  token: Token,
+  signer: Keypair,
+  perToken: boolean,
+  wallet: string,
+  treasury: string | null,
+) {
+  const native = Boolean(token.feeSharing);
+
+  /**
+   * A coin with its split locked on chain is paid only once that split is
+   * verified on the finalized chain
+   */
+  if (native && token.feeSharing !== "native") {
+    const check = await recheckLaunch(token.mint).catch((err) => ({
+      verified: false,
+      problems: [err instanceof Error ? err.message : String(err)],
+    }));
+    if (!check.verified) {
+      return Response.json(
+        { error: `This token's fee split is not verified on chain yet: ${check.problems.join("; ")}` },
+        { status: 409 },
+      );
+    }
+    await setFeeSharing(token.id, "native");
+  }
+
   /**
    * Bring the fees in from pump.fun first
    *
-   * pump.fun holds a creator's fees until the creator collects them, so a
-   * claim collects whatever is waiting into the launch wallet and then pays
-   * out of the wallet. If collecting fails, whatever is already in the wallet
-   * can still be paid
+   * A native coin's fees are distributed by pump.fun itself: 80% lands on the
+   * launch wallet, 20% on the treasury, and the treasury pays the network fee
+   * when its key is here. An older coin's fees are collected into the launch
+   * wallet whole. Either way, if this step fails, whatever is already in the
+   * wallet can still be paid
    */
-  if (perToken) {
+  if (native) {
+    try {
+      const payer = buybackConfig().treasuryKey ?? signer;
+      await distributeNative(token.mint, payer);
+    } catch (err) {
+      console.error(`[claim] ${token.id} could not distribute on pump.fun`, err);
+    }
+  } else if (perToken) {
     try {
       const waiting = (
         await readWalletFees([{ wallet: token.launchWallet, mint: token.mint }])
@@ -135,36 +196,42 @@ export async function POST(request: Request) {
   }
 
   /**
-   * How much is owed, and Fornum's part of it
+   * How much is owed
    *
    * With a wallet of its own, the token's fees are simply what sits above the
    * line the wallet was funded to, so the chain is the source of truth and
    * nobody has to record an amount. The floor never drops below rent
    * exemption, so a claim cannot leave the wallet to be swept away.
    *
-   * That amount is split 80/20: the owner's part goes to their address, and
-   * Fornum's goes to the treasury in the same transaction, or stays on the
-   * launch wallet above a raised line when no treasury is set. What reaches
-   * the treasury is written to the buyback ledger once the receipt is final,
-   * except for the Fornum token's own fees, which do not buy the token back
+   * A native coin's wallet only ever receives the owner's 80%, so all of it
+   * goes to the owner: the 20% already reached the treasury on chain, and the
+   * treasury ledger reads it from the distribution itself.
+   *
+   * An older coin's amount is split 80/20 here: the owner's part goes to
+   * their address, Fornum's goes to the treasury in the same transaction, or
+   * stays on the launch wallet above a raised line when no treasury is set.
+   * What reaches the treasury is written to the buyback ledger once the
+   * receipt is final, except for the Fornum token's own fees
    */
   const floor = Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS);
   const distributable = perToken
     ? claimableFromBalance(balance, floor, FEE_LAMPORTS)
     : 0;
-  const owed = perToken
-    ? ownerShare(distributable)
-    : Math.min(claimableLamports(token), sendableFrom(balance));
-  const fornum = perToken ? distributable - owed : 0;
+  const owed = native
+    ? distributable
+    : perToken
+      ? ownerShare(distributable)
+      : Math.min(claimableLamports(token), sendableFrom(balance));
+  const fornum = perToken && !native ? distributable - owed : 0;
 
   if (owed <= 0) {
     return Response.json({ error: "Nothing to claim" }, { status: 400 });
   }
 
-  const sent = await payOut(wallet.trim(), owed, {
+  const sent = await payOut(wallet, owed, {
     signer,
     floor: perToken ? floor : undefined,
-    also: perToken && treasury ? [{ to: treasury, lamports: fornum }] : [],
+    also: fornum > 0 && treasury ? [{ to: treasury, lamports: fornum }] : [],
   });
   if (!sent.ok) {
     return Response.json({ error: sent.error }, { status: 502 });
@@ -176,30 +243,35 @@ export async function POST(request: Request) {
       id: randomUUID(),
       tokenId: token.id,
       amountLamports: owed,
-      wallet: wallet.trim(),
+      wallet,
       tx: sent.signature,
     },
     {
       fornumLamports: fornum,
       // kept on the launch wallet when there is no treasury, so lift its line
-      baselineBumpLamports: perToken && !treasury ? fornum : 0,
+      baselineBumpLamports: fornum > 0 && !treasury ? fornum : 0,
     },
   );
 
-  if (perToken && treasury && fornum > 0 && hasDatabase && token.mint !== platformMint()) {
+  if (hasDatabase && token.mint !== platformMint()) {
     try {
-      await recordPendingCredit({
-        tokenId: token.id,
-        mint: token.mint,
-        signature: sent.signature,
-        treasury,
-        mainMint: platformMint(),
-        expectedLamports: fornum,
-      });
-      // confirms the credit once it is final and buys when the ledger allows
-      after(async () => {
-        await runBuybackPass(45_000);
-      });
+      if (fornum > 0 && treasury) {
+        await recordPendingCredit({
+          tokenId: token.id,
+          mint: token.mint,
+          signature: sent.signature,
+          treasury,
+          mainMint: platformMint(),
+          expectedLamports: fornum,
+        });
+      }
+      // confirms credits (and reads native distributions) once they are
+      // final, and buys back when the ledger allows
+      if ((fornum > 0 && treasury) || native) {
+        after(async () => {
+          await runBuybackPass(45_000);
+        });
+      }
     } catch (err) {
       // the payout is done and recorded; the credit can be added by hand from the signature
       console.error(`[claim] ${token.id} could not record the treasury credit ${sent.signature}`, err);

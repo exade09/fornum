@@ -20,6 +20,7 @@ import {
   type Job,
 } from "@/lib/buyback/ledger";
 import { inspectMint, programsReady, signBuyback } from "@/lib/buyback/market";
+import { scanDistributions } from "@/lib/buyback/scan";
 import { expired, judgeBuybackReceipt, judgeCreditReceipt, nextBudget } from "@/lib/buyback/rules";
 
 /**
@@ -269,6 +270,9 @@ export async function runBuybackPass(budgetMs = 45_000) {
 
   try {
     await reconcileCredits(push);
+    await scanDistributions(push, deadline - 15_000).catch((err) =>
+      push("scan failed", err instanceof Error ? err.message : String(err)),
+    );
 
     let job = await openJob();
     if (!job && settings.enabled && problems.length === 0 && treasuryKey && settings.mainMint) {

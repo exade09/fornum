@@ -99,6 +99,33 @@ export async function recordPendingCredit(c: {
   `;
 }
 
+/**
+ * A native distribution's payout to the treasury, already measured from its
+ * finalized receipt. Recorded once per signature, whoever sent it
+ */
+export async function recordDistributionCredit(c: {
+  tokenId: string;
+  mint: string;
+  signature: string;
+  treasury: string;
+  mainMint: string | null;
+  state: "confirmed" | "manual" | "failed";
+  lamports: number;
+  note: string | null;
+}) {
+  await ensureSchema();
+  await db()`
+    insert into treasury_credits
+      (id, token_id, mint, signature, treasury, main_mint, expected_lamports, confirmed_lamports,
+       state, note, kind, confirmed_at)
+    values
+      (${randomUUID()}, ${c.tokenId}, ${c.mint}, ${c.signature}, ${c.treasury}, ${c.mainMint},
+       ${c.lamports}, ${c.state === "confirmed" ? c.lamports : null},
+       ${c.state}, ${c.note}, 'distribution', ${c.state === "confirmed" ? db()`now()` : null})
+    on conflict (signature) do nothing
+  `;
+}
+
 export type PendingCredit = {
   id: string;
   signature: string;
@@ -111,7 +138,7 @@ export async function pendingCredits(limit = 20): Promise<PendingCredit[]> {
   await ensureSchema();
   const rows = await db()<JobRow[]>`
     select id, signature, treasury, expected_lamports, created_at
-      from treasury_credits where state = 'pending'
+      from treasury_credits where state = 'pending' and kind = 'claim'
      order by created_at limit ${limit}
   `;
   return rows.map((r) => ({

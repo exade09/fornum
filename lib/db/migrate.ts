@@ -91,6 +91,10 @@ const TABLES = [
   `create unique index if not exists buyback_jobs_one_open on buyback_jobs ((true)) where state in ('prepared', 'signed', 'submitted')`,
   `create index if not exists buyback_jobs_created on buyback_jobs (created_at desc)`,
   `create table if not exists buyback_allocations ( job_id text not null references buyback_jobs (id) on delete cascade, credit_id text not null references treasury_credits (id) on delete cascade, lamports bigint not null check (lamports > 0), seq integer not null, primary key (job_id, credit_id) )`,
+  `create table if not exists launch_fee_policies ( mint text primary key, developer text not null, treasury text not null, developer_bps integer not null, treasury_bps integer not null, state text not null default 'expected', signature text unique, error text, created_at timestamptz not null default now(), verified_at timestamptz, check (developer_bps + treasury_bps = 10000), check (developer <> treasury) )`,
+  `create table if not exists app_settings ( key text primary key, value text not null, updated_at timestamptz not null default now() )`,
+  `alter table treasury_credits add column if not exists kind text not null default 'claim'`,
+  `create table if not exists claim_locks ( token_id text primary key, owner text not null, expires_at timestamptz not null )`,
 ];
 
 /** Columns added to tokens after it was first created, by later migrations */
@@ -99,6 +103,8 @@ const TOKEN_COLUMNS: Record<string, string> = {
   baseline_lamports: "bigint not null default 0",
   image_url: "text",
   fees_fornum_lamports: "bigint not null default 0",
+  fee_sharing: "text",
+  fee_scan_cursor: "text",
 };
 
 let done: Promise<void> | null = null;

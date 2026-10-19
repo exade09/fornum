@@ -7,6 +7,11 @@ import { TokenRemover } from "@/components/admin/token-remover";
 import { SignInDesk } from "@/components/admin/sign-in-desk";
 import { TokenImages } from "@/components/admin/token-images";
 import { BuybackDesk } from "@/components/admin/buyback-desk";
+import { FeeSplitDesk } from "@/components/admin/fee-split-desk";
+import { launchTableAddress } from "@/lib/pump/policies";
+import { verifiedLaunchTable } from "@/lib/pump/shares";
+import { connect } from "@/lib/solana/read";
+import { PublicKey } from "@solana/web3.js";
 import { buybackConfig } from "@/lib/buyback/config";
 import { ledgerSummary } from "@/lib/buyback/ledger";
 import { AdminLogin, AdminLogout } from "@/components/admin/admin-login";
@@ -51,6 +56,15 @@ export default async function AdminPage() {
   const wallets = await launchFleet();
 
   const buyback = buybackConfig();
+  const tableAddress = await launchTableAddress().catch(() => null);
+  let tableProblem: string | null = null;
+  if (tableAddress && buyback.settings.treasuryWallet) {
+    try {
+      await verifiedLaunchTable(connect(), tableAddress, new PublicKey(buyback.settings.treasuryWallet));
+    } catch (err) {
+      tableProblem = err instanceof Error ? err.message : String(err);
+    }
+  }
   const ledger = await ledgerSummary().catch((err) => {
     buyback.problems.push(`ledger: ${err instanceof Error ? err.message : String(err)}`);
     return null;
@@ -123,6 +137,13 @@ export default async function AdminPage() {
         </Card>
 
         <SignInDesk />
+
+        <FeeSplitDesk
+          treasury={buyback.settings.treasuryWallet}
+          table={tableAddress}
+          tableProblem={tableProblem}
+          pending={tokens.filter((t) => t.feeSharing === "pending").map((t) => t.id)}
+        />
 
         <LaunchRecorder wallets={wallets} />
 

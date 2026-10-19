@@ -94,6 +94,36 @@ through PumpPortal from the first funded, unused launch wallet, and the mint is
 recorded by itself. A JSON body with `mint` still records a coin deployed some
 other way.
 
+## Fee split at launch
+
+Every coin launched from `/admin` is created in one transaction with its fee
+split locked by pump.fun's own fee sharing (`lib/pump/shares.ts`):
+`create_v2` with the launch wallet as creator, `create_fee_sharing_config`,
+then `update_fee_shares_v2` with the launch wallet at 8000 bps and the
+treasury at 2000 bps, which also revokes the admin. If any of the three fails
+none happens. Before signing, the policy is checked (two distinct valid
+addresses, neither the funding wallet, 10 000 bps) and stored in
+`launch_fee_policies`; the transaction is simulated and refused unless the
+simulated accounts already show the split; after sending, the split is read
+back from the finalized chain (programs, PDA, version 2, admin revoked, the
+curve's and, once graduated, the pool's creator pointing at the config, the
+two shareholders). Only then is the coin `fee_sharing = 'native'`; until then
+its fees are not paid out.
+
+The three instructions need an address lookup table, which the treasury
+creates once from `/admin` (Fee split) and which is checked before every use:
+authority, active, complete, final. `npm run launch:dry-run -- <creator>
+<treasury> <table>` simulates a launch against mainnet without sending it.
+
+A native coin is claimed through pump.fun's distribution
+(`lib/pump/distribute.ts`): 80% lands on its launch wallet and goes to the
+owner whole, 20% lands on the treasury, and the site does not split it again.
+Distributions are permissionless, so the worker reads every finalized one
+from each coin's sharing config into the treasury ledger, once per signature,
+and sends anything that is not a plain distribution to manual review. Coins
+launched before this keep the old path: collected by the site and split 80/20
+at each claim.
+
 ## Buyback
 
 Fornum's 20% of a claim goes to the treasury (`TREASURY_WALLET`) in the claim

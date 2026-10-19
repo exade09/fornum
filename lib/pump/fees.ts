@@ -59,7 +59,12 @@ export type WalletFees = {
  * couple of RPC calls rather than several per token
  */
 export async function readWalletFees(
-  launches: { wallet: string; mint: string }[],
+  /**
+   * `creator` is who pump.fun pays the coin's fees to, when that is not the
+   * launch wallet: a coin with its split locked on chain pays its sharing
+   * config, and the vaults are that config's
+   */
+  launches: { wallet: string; mint: string; creator?: string }[],
 ): Promise<Map<string, WalletFees>> {
   // keyed by mint, since one wallet can be behind more than one coin
   const out = new Map<string, WalletFees>();
@@ -67,9 +72,10 @@ export async function readWalletFees(
 
   const keys: PublicKey[] = [];
   for (const l of launches) {
-    const creator = new PublicKey(l.wallet);
+    const wallet = new PublicKey(l.wallet);
+    const creator = new PublicKey(l.creator ?? l.wallet);
     const mint = new PublicKey(l.mint);
-    keys.push(creator, curveVault(creator), ammVault(creator), bondingCurve(mint), canonicalPool(mint));
+    keys.push(wallet, curveVault(creator), ammVault(creator), bondingCurve(mint), canonicalPool(mint));
   }
 
   const connection = connect();

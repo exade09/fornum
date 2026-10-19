@@ -78,6 +78,7 @@ type TokenRow = {
   fees_accrued_lamports: string;
   fees_claimed_lamports: string;
   fees_fornum_lamports?: string | null;
+  fee_sharing?: string | null;
   market_cap_usd: string;
   holders: number;
   created_at: Date;
@@ -103,6 +104,7 @@ function toToken(r: TokenRow): Token {
     feesAccruedLamports: Number(r.fees_accrued_lamports),
     feesClaimedLamports: Number(r.fees_claimed_lamports),
     fornumTakenLamports: Number(r.fees_fornum_lamports ?? 0),
+    feeSharing: (r.fee_sharing as Token["feeSharing"]) ?? null,
     marketCapUsd: Number(r.market_cap_usd),
     holders: r.holders,
     createdAt: r.created_at.toISOString(),
@@ -184,19 +186,76 @@ export async function createToken(
     insert into tokens (
       id, mint, name, symbol, status, image_url,
       owner_hash, owner_masked, assignee_hash, assignee_masked,
-      launch_wallet, wallet_index, baseline_lamports,
+      launch_wallet, wallet_index, baseline_lamports, fee_sharing,
       fees_accrued_lamports, fees_claimed_lamports,
       market_cap_usd, holders
     ) values (
       ${t.id}, ${t.mint}, ${t.name}, ${t.symbol}, ${t.status}, ${t.imageUrl ?? null},
       ${t.ownerHash}, ${t.ownerMasked}, ${t.assigneeHash ?? null}, ${t.assigneeMasked ?? null},
-      ${t.launchWallet}, ${t.walletIndex ?? null}, ${t.baselineLamports},
+      ${t.launchWallet}, ${t.walletIndex ?? null}, ${t.baselineLamports}, ${t.feeSharing ?? null},
       ${t.feesAccruedLamports}, ${t.feesClaimedLamports},
       ${t.marketCapUsd}, ${t.holders}
     )
     returning *
   `;
   return toToken(rows[0]);
+}
+
+/** Marks a coin's on-chain split as verified, or back to pending */
+export async function setFeeSharing(id: string, state: "native" | "pending") {
+  if (!sql) {
+    seed();
+    const t = mem.tokens.find((x) => x.id === id);
+    if (t) t.feeSharing = state;
+    return;
+  }
+  await ensureSchema();
+  await sql`update tokens set fee_sharing = ${state} where id = ${id}`;
+}
+
+const memLocks = new Map<string, number>();
+
+/**
+ * Takes the coin for one claim, or returns false while another claim holds it.
+ * Expires by itself, so a crashed claim cannot block the coin for good
+ */
+export async function acquireClaimLock(tokenId: string, owner: string, seconds = 90): Promise<boolean> {
+  if (!sql) {
+    const until = memLocks.get(tokenId) ?? 0;
+    if (until > Date.now()) return false;
+    memLocks.set(tokenId, Date.now() + seconds * 1000);
+    return true;
+  }
+  await ensureSchema();
+  const rows = await sql`
+    insert into claim_locks (token_id, owner, expires_at)
+    values (${tokenId}, ${owner}, now() + make_interval(secs => ${seconds}))
+    on conflict (token_id) do update
+      set owner = excluded.owner, expires_at = excluded.expires_at
+      where claim_locks.expires_at < now()
+    returning token_id
+  `;
+  return rows.length === 1;
+}
+
+export async function releaseClaimLock(tokenId: string, owner: string) {
+  if (!sql) {
+    memLocks.delete(tokenId);
+    return;
+  }
+  await sql`delete from claim_locks where token_id = ${tokenId} and owner = ${owner}`;
+}
+
+/** Where the treasury ledger stopped reading a coin's distributions */
+export async function setScanCursor(id: string, signature: string) {
+  if (!sql) return;
+  await sql`update tokens set fee_scan_cursor = ${signature} where id = ${id}`;
+}
+
+export async function scanCursor(id: string): Promise<string | null> {
+  if (!sql) return null;
+  const [r] = await sql<{ fee_scan_cursor: string | null }[]>`select fee_scan_cursor from tokens where id = ${id}`;
+  return r?.fee_scan_cursor ?? null;
 }
 
 /** Point the fees of a token at a different number. One way on purpose */

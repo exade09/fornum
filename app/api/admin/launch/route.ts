@@ -8,7 +8,8 @@ import { launchFleet } from "@/lib/launch-fleet";
 import { issueLink } from "@/lib/auth/sign-in-links";
 import { launchReply } from "@/lib/replies";
 import { ipfsProblem, pin } from "@/lib/pump/ipfs";
-import { createCoin } from "@/lib/pump/portal";
+import { launchWithShares, nativeLaunchProblem } from "@/lib/pump/native-launch";
+import { FUNDING_INDEX } from "@/lib/solana/launch-wallets";
 import type { Token } from "@/lib/types";
 
 /**
@@ -16,13 +17,15 @@ import type { Token } from "@/lib/types";
  *
  * Name, ticker and picture go in, the coin comes out on pump.fun: the picture
  * and the metadata are pinned to IPFS, the coin is deployed from a funded,
- * unused launch wallet, and the mint is recorded against the number that
- * asked. Nothing is copied by hand, so there is no mint to mistype.
+ * unused launch wallet with its creator fees split 80/20 between that wallet
+ * and the treasury and locked on chain in the same transaction, and the mint
+ * is recorded against the number that asked. Nothing is copied by hand, so
+ * there is no mint to mistype.
  *
  * A JSON body with `mint` still records a coin deployed some other way
  */
 
-// two uploads, a transaction and its confirmation
+// two uploads, a transaction, and waiting for it to be final to check the split
 export const maxDuration = 60;
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -71,6 +74,8 @@ export async function POST(request: Request) {
 
   const ipfs = ipfsProblem();
   if (ipfs) return Response.json({ error: ipfs }, { status: 503 });
+  const split = await nativeLaunchProblem();
+  if (split) return Response.json({ error: split }, { status: 503 });
 
   // which wallet: the one picked, or the first funded one nobody used
   const fleet = await launchFleet();
@@ -89,6 +94,12 @@ export async function POST(request: Request) {
   if (!choice) {
     return Response.json(
       { error: "No funded, unused launch wallet is left. Fund more first" },
+      { status: 409 },
+    );
+  }
+  if (choice.index === FUNDING_INDEX) {
+    return Response.json(
+      { error: "The funding wallet pays for launches and cannot create a coin itself. Pick a launch wallet" },
       { status: 409 },
     );
   }
@@ -132,8 +143,15 @@ export async function POST(request: Request) {
 
     let mint: string;
     let signature: string;
+    let verified: boolean;
+    let problems: string[];
     try {
-      ({ mint, signature } = await createCoin({ creator: signer, name, symbol, metadataUri }));
+      ({ mint, signature, verified, problems } = await launchWithShares({
+        creator: signer,
+        name,
+        symbol,
+        uri: metadataUri,
+      }));
     } catch (err) {
       return Response.json(
         { error: err instanceof Error ? err.message : "The launch failed" },
@@ -154,10 +172,14 @@ export async function POST(request: Request) {
         wallet: choice.address,
         walletIndex: choice.index,
         baseline,
+        feeSharing: verified ? "native" : "pending",
       });
       return Response.json({
         ...(await replyFor(token, request)),
         signature,
+        split: verified
+          ? "80/20 locked and verified on chain"
+          : `80/20 sent, not verified yet: ${problems.join("; ")}`,
         walletIndex: choice.index,
         imageUrl,
       });
@@ -188,6 +210,7 @@ async function save(input: {
   wallet: string;
   walletIndex: number;
   baseline: number;
+  feeSharing?: "native" | "pending" | null;
 }) {
   const id =
     input.symbol.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 20) +
@@ -210,6 +233,7 @@ async function save(input: {
     // what the wallet holds right after paying for the launch; everything that
     // lands on top of it later is the token's fees
     baselineLamports: input.baseline,
+    feeSharing: input.feeSharing ?? null,
     feesAccruedLamports: 0,
     feesClaimedLamports: 0,
     marketCapUsd: 0,

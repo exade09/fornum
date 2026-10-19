@@ -30,6 +30,12 @@ create table if not exists tokens (
 
   fees_accrued_lamports bigint not null default 0,
   fees_claimed_lamports bigint not null default 0,
+  -- Fornum's 20% split off at claims, for coins without a native split
+  fees_fornum_lamports  bigint not null default 0,
+  -- null: split by the site at claims; 'pending' / 'native': locked on chain at launch
+  fee_sharing           text,
+  -- newest distribution signature already read for the treasury ledger
+  fee_scan_cursor       text,
 
   market_cap_usd        numeric not null default 0,
   holders               integer not null default 0,
@@ -133,6 +139,8 @@ create table if not exists treasury_credits (
   -- pending, confirmed, failed, manual
   state               text not null default 'pending',
   note                text,
+  -- claim: the site's own split; distribution: pump.fun's native payout
+  kind                text not null default 'claim',
   created_at          timestamptz not null default now(),
   confirmed_at        timestamptz,
   check (allocated_lamports >= 0),
@@ -184,4 +192,34 @@ create table if not exists buyback_allocations (
   lamports   bigint not null check (lamports > 0),
   seq        integer not null,
   primary key (job_id, credit_id)
+);
+
+-- Fee split locked on chain at launch, see 008-fee-shares.sql
+create table if not exists launch_fee_policies (
+  mint            text primary key,
+  developer       text not null,
+  treasury        text not null,
+  developer_bps   integer not null,
+  treasury_bps    integer not null,
+  -- expected, submitted, verified, failed
+  state           text not null default 'expected',
+  signature       text unique,
+  error           text,
+  created_at      timestamptz not null default now(),
+  verified_at     timestamptz,
+  check (developer_bps + treasury_bps = 10000),
+  check (developer <> treasury)
+);
+
+create table if not exists app_settings (
+  key         text primary key,
+  value       text not null,
+  updated_at  timestamptz not null default now()
+);
+
+-- one claim at a time per coin, across every server instance
+create table if not exists claim_locks (
+  token_id    text primary key,
+  owner       text not null,
+  expires_at  timestamptz not null
 );

@@ -47,6 +47,13 @@ export type Token = {
   feesClaimedLamports: number;
   /** Fornum's 20% of what has been claimed, split off at each claim */
   fornumTakenLamports?: number;
+  /**
+   * How the coin's fees are split. Null for coins from before the split was
+   * locked on chain: the site collects them and splits 80/20 at each claim.
+   * 'native' when pump.fun pays 80% to the launch wallet and 20% to the
+   * treasury itself, verified on chain; 'pending' until that check passed
+   */
+  feeSharing?: "native" | "pending" | null;
 
   marketCapUsd: number;
   holders: number;

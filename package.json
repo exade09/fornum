@@ -13,7 +13,8 @@
     "wallets": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/launch-wallets.mts",
     "wallets:fund": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/fund-launch-wallets.mts",
     "test": "node --no-warnings --test tests/*.test.mts",
-    "buyback:dry-run": "tsx --conditions=react-server --env-file=.env.local scripts/buyback-dry-run.mts"
+    "buyback:dry-run": "tsx --conditions=react-server --env-file=.env.local scripts/buyback-dry-run.mts",
+    "launch:dry-run": "tsx --conditions=react-server --env-file=.env.local scripts/launch-dry-run.mts"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^4.2.0",

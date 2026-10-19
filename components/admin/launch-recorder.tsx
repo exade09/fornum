@@ -33,7 +33,7 @@ export function LaunchRecorder({ wallets }: { wallets: LaunchWallet[] | null }) 
   const [walletIndex, setWalletIndex] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState<{ id: string; mint: string; signature: string } | null>(null);
+  const [done, setDone] = useState<{ id: string; mint: string; signature: string; split?: string } | null>(null);
   const [reply, setReply] = useState("");
 
   const preview = useMemo(() => (image ? URL.createObjectURL(image) : null), [image]);
@@ -83,8 +83,8 @@ export function LaunchRecorder({ wallets }: { wallets: LaunchWallet[] | null }) 
       return;
     }
 
-    const body = (await res.json()) as { id: string; mint: string; signature: string; reply: string };
-    setDone({ id: body.id, mint: body.mint, signature: body.signature });
+    const body = (await res.json()) as { id: string; mint: string; signature: string; reply: string; split?: string };
+    setDone({ id: body.id, mint: body.mint, signature: body.signature, split: body.split });
     setReply(body.reply);
     setName("");
     setSymbol("");
@@ -224,6 +224,7 @@ export function LaunchRecorder({ wallets }: { wallets: LaunchWallet[] | null }) 
               >
                 transaction
               </a>
+              {done.split && <span className="basis-full text-secondary">{done.split}</span>}
             </span>
           )}
         </div>

@@ -20,10 +20,12 @@ export const FLEET_SIZE = 60;
 export const FUNDED_TARGET = 15_000_000;
 
 /**
- * What a launch costs, measured on a real mainnet launch: metadata account,
- * mint, curve accounts and fees. A wallet holding less than this cannot launch
+ * What a launch costs with its 80/20 locked on chain, from a mainnet
+ * simulation: 11 754 320 lamports for the mint, the curve accounts, the
+ * sharing config and the fees, with a little room on top. A wallet holding
+ * less than this cannot launch
  */
-export const LAUNCH_COST = 11_690_000;
+export const LAUNCH_COST = 12_000_000;
 
 /**
  * How many coins the funding wallet may launch
