@@ -1,3 +1,4 @@
+import { refuseUnlessAdmin } from "@/lib/auth/admin";
 import { deleteToken, getToken } from "@/lib/db/store";
 
 /**
@@ -8,16 +9,8 @@ import { deleteToken, getToken } from "@/lib/db/store";
  * the difference between a deliberate removal and a misclick
  */
 export async function DELETE(request: Request) {
-  const expected = process.env.ADMIN_TOKEN;
-  if (!expected) {
-    return Response.json(
-      { error: "ADMIN_TOKEN is not set on this deployment" },
-      { status: 503 },
-    );
-  }
-  if (request.headers.get("authorization") !== `Bearer ${expected}`) {
-    return Response.json({ error: "Not allowed" }, { status: 401 });
-  }
+  const refused = await refuseUnlessAdmin(request);
+  if (refused) return refused;
 
   const { tokenId, confirm } = (await request.json()) as {
     tokenId?: string;

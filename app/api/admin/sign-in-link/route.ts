@@ -11,7 +11,7 @@ import { signInReply } from "@/lib/replies";
  * opens it is signed in as that number
  */
 export async function POST(request: Request) {
-  const refused = refuseUnlessAdmin(request);
+  const refused = await refuseUnlessAdmin(request);
   if (refused) return refused;
 
   const { phone } = (await request.json()) as { phone?: string };

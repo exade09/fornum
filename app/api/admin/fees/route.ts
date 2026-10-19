@@ -1,3 +1,4 @@
+import { refuseUnlessAdmin } from "@/lib/auth/admin";
 import { getToken, setAccrued } from "@/lib/db/store";
 
 /**
@@ -9,16 +10,8 @@ import { getToken, setAccrued } from "@/lib/db/store";
  * the first claim would take everybody's money
  */
 export async function POST(request: Request) {
-  const expected = process.env.ADMIN_TOKEN;
-  if (!expected) {
-    return Response.json(
-      { error: "ADMIN_TOKEN is not set on this deployment" },
-      { status: 503 },
-    );
-  }
-  if (request.headers.get("authorization") !== `Bearer ${expected}`) {
-    return Response.json({ error: "Not allowed" }, { status: 401 });
-  }
+  const refused = await refuseUnlessAdmin(request);
+  if (refused) return refused;
 
   const { tokenId, lamports } = (await request.json()) as {
     tokenId?: string;

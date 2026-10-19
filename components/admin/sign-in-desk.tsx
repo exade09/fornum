@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/primitives";
 import { CheckIcon, WhatsAppIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
-const KEY = "fornum:admin-token";
 const POLL_MS = 10_000;
 
 type Pending = { code: string; masked: string; createdAt: string };
@@ -22,38 +21,25 @@ type Pending = { code: string; masked: string; createdAt: string };
  * paste the reply into their thread
  */
 export function SignInDesk() {
-  const [secret, setSecret] = useState("");
   const [pending, setPending] = useState<Pending[] | null>(null);
   const [listError, setListError] = useState("");
 
-  useEffect(() => {
-    try {
-      setSecret(window.localStorage.getItem(KEY) ?? "");
-    } catch {
-      /* private mode, type it again */
-    }
-  }, []);
-
   const load = useCallback(async () => {
-    if (!secret) return;
-    const res = await fetch("/api/admin/sign-ins", {
-      headers: { Authorization: `Bearer ${secret}` },
-    }).catch(() => null);
+    const res = await fetch("/api/admin/sign-ins").catch(() => null);
     if (!res?.ok) {
-      setListError(res?.status === 401 ? "Admin token is wrong" : "Could not load the queue");
+      setListError(res?.status === 401 ? "Signed out, reload the page" : "Could not load the queue");
       setPending(null);
       return;
     }
     setListError("");
     setPending(((await res.json()) as { pending: Pending[] }).pending);
-  }, [secret]);
+  }, []);
 
   useEffect(() => {
-    if (!secret) return;
     load();
     const timer = setInterval(load, POLL_MS);
     return () => clearInterval(timer);
-  }, [secret, load]);
+  }, [load]);
 
   return (
     <Card sheen className="animate-section-in flex flex-col gap-6 p-6">
@@ -67,55 +53,26 @@ export function SignInDesk() {
         </p>
       </div>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[10px] font-bold tracking-wider text-secondary uppercase">
-          Admin token
-        </span>
-        <input
-          value={secret}
-          onChange={(e) => {
-            setSecret(e.target.value);
-            try {
-              window.localStorage.setItem(KEY, e.target.value);
-            } catch {
-              /* not important enough to fail on */
-            }
-          }}
-          placeholder="ADMIN_TOKEN"
-          className="h-10 w-full max-w-sm rounded-lg border border-primary/[0.06] bg-field px-3 font-mono text-xs text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-        />
-      </label>
 
       <div className="flex flex-col gap-2">
         <span className="text-[10px] font-bold tracking-wider text-secondary uppercase">
           Waiting{pending ? ` · ${pending.length}` : ""}
         </span>
         {listError && <p className="text-xs text-error">{listError}</p>}
-        {!secret && (
-          <p className="text-xs text-secondary">Enter the admin token to see the queue</p>
-        )}
         {pending?.length === 0 && (
           <p className="text-xs text-secondary">Nobody is waiting right now</p>
         )}
         {pending?.map((p) => (
-          <PendingRow key={p.code} item={p} secret={secret} onDone={load} />
+          <PendingRow key={p.code} item={p} onDone={load} />
         ))}
       </div>
 
-      <LinkMaker secret={secret} />
+      <LinkMaker />
     </Card>
   );
 }
 
-function PendingRow({
-  item,
-  secret,
-  onDone,
-}: {
-  item: Pending;
-  secret: string;
-  onDone: () => void;
-}) {
+function PendingRow({ item, onDone }: { item: Pending; onDone: () => void }) {
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -128,10 +85,7 @@ function PendingRow({
     setError("");
     const res = await fetch("/api/admin/sign-ins", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${secret}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: item.code, phone }),
     });
     setBusy(false);
@@ -190,7 +144,7 @@ function PendingRow({
   );
 }
 
-function LinkMaker({ secret }: { secret: string }) {
+function LinkMaker() {
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -198,16 +152,13 @@ function LinkMaker({ secret }: { secret: string }) {
 
   async function make(e: React.FormEvent) {
     e.preventDefault();
-    if (busy || !secret || phone.replace(/\D/g, "").length < 8) return;
+    if (busy || phone.replace(/\D/g, "").length < 8) return;
     setBusy(true);
     setError("");
     setReply("");
     const res = await fetch("/api/admin/sign-in-link", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${secret}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone }),
     });
     setBusy(false);
@@ -242,7 +193,7 @@ function LinkMaker({ secret }: { secret: string }) {
         </span>
         <button
           type="submit"
-          disabled={busy || !secret || phone.replace(/\D/g, "").length < 8}
+          disabled={busy || phone.replace(/\D/g, "").length < 8}
           className={cn(
             "flex h-10 items-center justify-center rounded-full border px-5 text-sm font-bold text-primary transition-colors hover:bg-background/70",
             "disabled:cursor-not-allowed disabled:opacity-40",

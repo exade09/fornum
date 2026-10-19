@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db/client";
+import { ensureSchema } from "@/lib/db/migrate";
 import { siteConfig } from "@/lib/config";
 import { DEMO_CLAIMS, DEMO_TOKENS } from "@/lib/demo-data";
 import type { Claim, LaunchRequest, Token } from "@/lib/types";
@@ -72,6 +73,7 @@ type TokenRow = {
   // absent until the migration has run
   wallet_index?: number | null;
   baseline_lamports?: string | null;
+  image_url?: string | null;
   fees_accrued_lamports: string;
   fees_claimed_lamports: string;
   market_cap_usd: string;
@@ -86,6 +88,7 @@ function toToken(r: TokenRow): Token {
     name: r.name,
     symbol: r.symbol,
     status: r.status as Token["status"],
+    imageUrl: r.image_url ?? null,
     ownerHash: r.owner_hash,
     ownerMasked: r.owner_masked,
     assigneeHash: r.assignee_hash,
@@ -173,15 +176,16 @@ export async function createToken(
     return token;
   }
 
+  await ensureImageColumn();
   const rows = await sql<TokenRow[]>`
     insert into tokens (
-      id, mint, name, symbol, status,
+      id, mint, name, symbol, status, image_url,
       owner_hash, owner_masked, assignee_hash, assignee_masked,
       launch_wallet, wallet_index, baseline_lamports,
       fees_accrued_lamports, fees_claimed_lamports,
       market_cap_usd, holders
     ) values (
-      ${t.id}, ${t.mint}, ${t.name}, ${t.symbol}, ${t.status},
+      ${t.id}, ${t.mint}, ${t.name}, ${t.symbol}, ${t.status}, ${t.imageUrl ?? null},
       ${t.ownerHash}, ${t.ownerMasked}, ${t.assigneeHash ?? null}, ${t.assigneeMasked ?? null},
       ${t.launchWallet}, ${t.walletIndex ?? null}, ${t.baselineLamports},
       ${t.feesAccruedLamports}, ${t.feesClaimedLamports},
@@ -215,6 +219,29 @@ export async function assignToken(
     returning *
   `;
   return rows[0] ? toToken(rows[0]) : null;
+}
+
+/**
+ * The picture column came after the first launches
+ *
+ * Writes that need it make sure the schema is current first. It normally is
+ * already, from instrumentation.ts at server start, and then this is free
+ */
+async function ensureImageColumn() {
+  await ensureSchema();
+}
+
+/** Set or replace a token's picture */
+export async function setImage(id: string, imageUrl: string | null) {
+  if (!sql) {
+    seed();
+    const t = mem.tokens.find((x) => x.id === id);
+    if (t) t.imageUrl = imageUrl;
+    return Boolean(t);
+  }
+  await ensureImageColumn();
+  const rows = await sql`update tokens set image_url = ${imageUrl} where id = ${id} returning id`;
+  return rows.length > 0;
 }
 
 /** Refresh what the launch wallet has taken in, from an on chain read */

@@ -1,6 +1,6 @@
 import "server-only";
 import { pick } from "@/lib/config";
-import { listTokens } from "@/lib/db/store";
+import { liveTokens } from "@/lib/tokens";
 import { claimableLamports } from "@/lib/types";
 
 export * from "@/lib/format";
@@ -28,7 +28,7 @@ export type Stats = {
  * FORNUM_OVERRIDES replaces the computed one
  */
 export async function getStats(): Promise<Stats> {
-  const tokens = await listTokens();
+  const tokens = await liveTokens();
 
   const accrued = tokens.reduce((s, t) => s + t.feesAccruedLamports, 0);
   const claimed = tokens.reduce((s, t) => s + t.feesClaimedLamports, 0);

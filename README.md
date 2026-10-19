@@ -71,9 +71,13 @@ that knows which one is in use.
 
 ## Claiming
 
-Creator fees accrue to the launch wallet that deployed the mint. A claim is a
-plain SOL transfer out of it to an address the recipient gives us, so there is
-no program to call yet.
+Creator fees accrue to the launch wallet that deployed the mint. pump.fun holds
+them until the creator collects, so a claim first sweeps and collects them
+into the launch wallet (one transaction built from pump.fun's published IDL,
+`lib/pump/collect.ts`), then sends a plain SOL transfer to the address the
+recipient gives us. Fees are never typed in: what a token earned is read off
+the chain, pump.fun's creator vaults plus the wallet above its funding line
+plus what was claimed (`lib/tokens.ts`).
 
 `POST /api/claim` checks the session against the token's recipient hash, reads
 the wallet balance on chain, sends the transfer, then writes the claim and moves
@@ -84,8 +88,16 @@ wallet keeps a small reserve so it can always pay for the next transaction.
 purpose: the new holder can pass them on again, the sender cannot pull them
 back.
 
-`POST /api/admin/launch` is how the operator records a launch they did by hand.
-Guarded by `ADMIN_TOKEN`, used from `/admin`.
+`POST /api/admin/launch` launches a coin from `/admin`: the picture and the
+metadata are pinned to IPFS (`PINATA_JWT`), the coin is created on pump.fun
+through PumpPortal from the first funded, unused launch wallet, and the mint is
+recorded by itself. A JSON body with `mint` still records a coin deployed some
+other way.
+
+`/admin` is behind a password. Only its scrypt hash is kept, in
+`ADMIN_PASSWORD_HASH`, made with `node scripts/admin-password.mts`. The
+operator routes take that session cookie, or `ADMIN_TOKEN` as a bearer token
+for scripts.
 
 ## Counters
 

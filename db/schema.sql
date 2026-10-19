@@ -10,6 +10,8 @@ create table if not exists tokens (
   name                  text not null,
   symbol                text not null,
   status                text not null default 'live',
+  -- the picture pump.fun shows for the coin, on IPFS
+  image_url             text,
 
   -- the number that asked for the launch
   owner_hash            text not null,

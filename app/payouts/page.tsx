@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/primitives";
 import { TokenMark } from "@/components/ui/token-mark";
 import { ArrowRightIcon } from "@/components/icons";
 import { getStats, shortAddress, sol, usdFrom } from "@/lib/data";
-import { listClaims, listTokens } from "@/lib/db/store";
+import { listClaims } from "@/lib/db/store";
+import { liveTokens } from "@/lib/tokens";
 import { solPriceUsd } from "@/lib/solana/price";
 
 export const metadata: Metadata = { title: "Claims" };
@@ -14,7 +15,7 @@ export default async function ClaimsPage() {
   const [stats, claims, tokens, price] = await Promise.all([
     getStats(),
     listClaims(),
-    listTokens(),
+    liveTokens(),
     solPriceUsd(),
   ]);
 

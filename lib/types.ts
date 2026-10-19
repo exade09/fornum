@@ -13,6 +13,9 @@ export type Token = {
   symbol: string;
   status: TokenStatus;
 
+  /** the token's picture, the same one pump.fun shows. Null draws a mark from the symbol */
+  imageUrl?: string | null;
+
   /** salted hash of the number that asked for the launch */
   ownerHash: string;
   /** masked copy, safe to show */

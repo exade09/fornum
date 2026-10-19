@@ -58,6 +58,9 @@ export function TokenMark({
           alt={symbol}
           fill
           sizes="96px"
+          // pictures live on IPFS gateways, which are not worth listing as
+          // remote patterns for a 96px icon
+          unoptimized
           className="object-cover"
         />
       </span>

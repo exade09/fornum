@@ -29,7 +29,7 @@ import bs58 from "bs58";
  */
 
 const SEED_FILE = process.env.LAUNCH_WALLETS_SEED ?? "secrets/launch-wallets.seed";
-const DEFAULT_COUNT = 100;
+const DEFAULT_COUNT = 60;
 
 function readPhrase(): string {
   if (!existsSync(SEED_FILE)) {

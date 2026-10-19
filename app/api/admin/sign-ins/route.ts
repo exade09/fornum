@@ -4,7 +4,7 @@ import { hashPhone } from "@/lib/auth/session";
 
 /** Codes visitors were given and have not been confirmed yet */
 export async function GET(request: Request) {
-  const refused = refuseUnlessAdmin(request);
+  const refused = await refuseUnlessAdmin(request);
   if (refused) return refused;
 
   return Response.json({ pending: await listPending() });
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
  * number is only hashed and compared with the one typed on the site
  */
 export async function POST(request: Request) {
-  const refused = refuseUnlessAdmin(request);
+  const refused = await refuseUnlessAdmin(request);
   if (refused) return refused;
 
   const body = (await request.json()) as { code?: string; phone?: string };

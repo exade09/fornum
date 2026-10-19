@@ -11,6 +11,7 @@ import {
 } from "@/components/icons";
 import { compactUsd, num, shortAddress, sol, usdFrom } from "@/lib/data";
 import { claimsForToken, getToken, getWallet } from "@/lib/db/store";
+import { liveToken } from "@/lib/tokens";
 import {
   claimableLamports,
   feeRecipientHash,
@@ -29,7 +30,7 @@ export async function generateMetadata({
 
 export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
   const { id } = await params;
-  const t = await getToken(id);
+  const t = await liveToken(id);
   if (!t) notFound();
 
   const [claims, price, session] = await Promise.all([
@@ -62,7 +63,7 @@ export default async function TokenPage({ params }: PageProps<"/token/[id]">) {
             sheen
             className="animate-section-in flex items-center gap-4 p-5"
           >
-            <TokenMark symbol={t.symbol} size="xl" className="size-16" />
+            <TokenMark symbol={t.symbol} image={t.imageUrl ?? undefined} size="xl" className="size-16" />
             <div className="flex min-w-0 flex-col gap-1">
               <div className="flex items-center gap-2">
                 <span className="truncate text-xl font-bold text-primary">

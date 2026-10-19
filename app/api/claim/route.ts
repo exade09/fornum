@@ -11,6 +11,8 @@ import {
   sendableFrom,
 } from "@/lib/solana/wallet";
 import { walletAt } from "@/lib/solana/launch-wallets";
+import { MIN_COLLECT_LAMPORTS, collectCreatorFees, readWalletFees } from "@/lib/pump/fees";
+import { forgetFees } from "@/lib/tokens";
 import {
   claimableFromBalance,
   claimableLamports,
@@ -25,6 +27,9 @@ import {
  * behind, and the write moves the claimed total in the same transaction so the
  * same fees cannot go out twice
  */
+// collecting from pump.fun first means two transactions back to back
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const session = await readSession();
   if (!session) {
@@ -86,6 +91,27 @@ export async function POST(request: Request) {
     );
   }
 
+  /**
+   * Bring the fees in from pump.fun first
+   *
+   * pump.fun holds a creator's fees until the creator collects them, so a
+   * claim collects whatever is waiting into the launch wallet and then pays
+   * out of the wallet. If collecting fails, whatever is already in the wallet
+   * can still be paid
+   */
+  if (perToken) {
+    try {
+      const waiting = (
+        await readWalletFees([{ wallet: token.launchWallet, mint: token.mint }])
+      ).get(token.launchWallet);
+      if (waiting && waiting.uncollectedLamports >= MIN_COLLECT_LAMPORTS) {
+        await collectCreatorFees(signer, token.mint);
+      }
+    } catch (err) {
+      console.error(`[claim] ${token.id} could not collect from pump.fun`, err);
+    }
+  }
+
   let balance: number;
   try {
     balance = await balanceOf(token.launchWallet);
@@ -126,6 +152,7 @@ export async function POST(request: Request) {
     return Response.json({ error: sent.error }, { status: 502 });
   }
 
+  forgetFees(token.id);
   const claim = await recordClaim({
     id: randomUUID(),
     tokenId: token.id,

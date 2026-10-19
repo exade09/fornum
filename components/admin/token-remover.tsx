@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/primitives";
 import { CheckIcon } from "@/components/icons";
 import { sol } from "@/lib/format";
 import type { Token } from "@/lib/types";
 import { cn } from "@/lib/cn";
-
-const KEY = "fornum:admin-token";
 
 /**
  * Take a launch off the list
@@ -19,23 +17,14 @@ const KEY = "fornum:admin-token";
  */
 export function TokenRemover({ tokens }: { tokens: Token[] }) {
   const router = useRouter();
-  const [secret, setSecret] = useState("");
   const [tokenId, setTokenId] = useState(tokens[0]?.id ?? "");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [removed, setRemoved] = useState("");
 
-  useEffect(() => {
-    try {
-      setSecret(window.localStorage.getItem(KEY) ?? "");
-    } catch {
-      /* private mode, type it again */
-    }
-  }, []);
-
   const token = tokens.find((t) => t.id === tokenId);
-  const ready = secret.length > 0 && tokenId.length > 0 && confirm === tokenId;
+  const ready = tokenId.length > 0 && confirm === tokenId;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,10 +36,7 @@ export function TokenRemover({ tokens }: { tokens: Token[] }) {
 
     const res = await fetch("/api/admin/token", {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${secret}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tokenId, confirm }),
     });
     setBusy(false);
@@ -118,18 +104,6 @@ export function TokenRemover({ tokens }: { tokens: Token[] }) {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder={tokenId}
-              className="h-10 w-full rounded-lg border border-primary/[0.06] bg-field px-3 font-mono text-xs text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold tracking-wider text-secondary uppercase">
-              Admin token
-            </span>
-            <input
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              placeholder="ADMIN_TOKEN"
               className="h-10 w-full rounded-lg border border-primary/[0.06] bg-field px-3 font-mono text-xs text-primary placeholder:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
             />
           </label>

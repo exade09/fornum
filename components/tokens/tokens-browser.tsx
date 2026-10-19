@@ -132,7 +132,7 @@ function TokenCard({
     >
       <Card lift sheen className="flex h-full flex-col gap-4 p-4">
         <div className="flex items-center gap-3">
-          <TokenMark symbol={t.symbol} size="lg" className="size-10" />
+          <TokenMark symbol={t.symbol} image={t.imageUrl ?? undefined} size="lg" className="size-10" />
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-bold text-primary">
               {t.symbol}
