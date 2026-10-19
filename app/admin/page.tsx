@@ -8,6 +8,8 @@ import { SignInDesk } from "@/components/admin/sign-in-desk";
 import { TokenImages } from "@/components/admin/token-images";
 import { BuybackDesk } from "@/components/admin/buyback-desk";
 import { FeeSplitDesk } from "@/components/admin/fee-split-desk";
+import { CaEditor } from "@/components/admin/ca-editor";
+import { contractAddress } from "@/lib/settings";
 import { launchTableAddress } from "@/lib/pump/policies";
 import { verifiedLaunchTable } from "@/lib/pump/shares";
 import { connect } from "@/lib/solana/read";
@@ -135,6 +137,8 @@ export default async function AdminPage() {
           </div>
           <AdminLogout />
         </Card>
+
+        <CaEditor current={await contractAddress()} />
 
         <SignInDesk />
 

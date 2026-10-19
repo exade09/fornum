@@ -2,6 +2,9 @@ import "server-only";
 import { sql } from "@/lib/db/client";
 import { ensureSchema } from "@/lib/db/migrate";
 import type { SharePolicy } from "@/lib/pump/share-rules";
+import { getSetting } from "@/lib/settings";
+
+export { getSetting, setSetting } from "@/lib/settings";
 
 /**
  * The split each launch was meant to have, written before it is signed
@@ -57,26 +60,6 @@ export async function getPolicy(mint: string): Promise<(SharePolicy & { state: P
     state: r.state as PolicyState,
     signature: (r.signature as string) ?? null,
   };
-}
-
-/* ------------------------------------------------------------------ */
-/* Settings kept in the database                                       */
-/* ------------------------------------------------------------------ */
-
-export async function getSetting(key: string): Promise<string | null> {
-  if (!sql) return null;
-  await ensureSchema();
-  const [r] = await sql<{ value: string }[]>`select value from app_settings where key = ${key}`;
-  return r?.value ?? null;
-}
-
-export async function setSetting(key: string, value: string) {
-  if (!sql) throw new Error("Settings need DATABASE_URL");
-  await ensureSchema();
-  await sql`
-    insert into app_settings (key, value) values (${key}, ${value})
-    on conflict (key) do update set value = excluded.value, updated_at = now()
-  `;
 }
 
 /** The launch lookup table: LAUNCH_LOOKUP_TABLE on the host, or the one made from /admin */

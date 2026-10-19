@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { MobileNav, SideNav } from "@/components/shell/side-nav";
 import { SiteFooter } from "@/components/shell/footer";
+import { TopBar } from "@/components/shell/top-bar";
+import { contractAddress } from "@/lib/settings";
 import { readSession } from "@/lib/auth/session";
 import "./globals.css";
 
@@ -34,6 +36,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await readSession();
+  const ca = await contractAddress();
 
   // the column width the visitor last chose, read on the server so the layout
   // renders at its final width instead of snapping after hydration
@@ -57,6 +60,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileNav account={session?.masked ?? null} />
+          <TopBar ca={ca} />
           <main id="main" className="relative flex-1">
             {children}
           </main>
