@@ -43,14 +43,22 @@ export function adminSetupProblem(): string | null {
  * Anything else is refused rather than guessed at
  */
 export function passwordMatches(password: string) {
-  const stored = process.env.ADMIN_PASSWORD_HASH?.trim();
+  // hosts' env screens make it easy to paste a value with quotes around it
+  const stored = process.env.ADMIN_PASSWORD_HASH?.trim().replace(/^(["'])(.*)\1$/, "$2").trim();
   if (!stored) return false;
-  const [scheme, salt, key] = stored.split(":");
-  if (scheme !== "scrypt" || !salt || !key) return false;
 
-  const expected = Buffer.from(key, "base64url");
-  const actual = scryptSync(password, Buffer.from(salt, "base64url"), expected.length);
-  return timingSafeEqual(actual, expected);
+  const [scheme, salt, key] = stored.split(/[:$]/);
+  if (scheme === "scrypt" && salt && key) {
+    const expected = Buffer.from(key, "base64url");
+    const actual = scryptSync(password, Buffer.from(salt, "base64url"), expected.length);
+    return timingSafeEqual(actual, expected);
+  }
+
+  // not a hash at all: the password itself was pasted in. Still works, and
+  // compared in constant time, but the hash from the script is the better way
+  console.warn("[admin] ADMIN_PASSWORD_HASH holds a plain password, not a scrypt hash");
+  const digest = (v: string) => createHmac("sha256", "fornum-admin-compare").update(v).digest();
+  return timingSafeEqual(digest(password), digest(stored));
 }
 
 export async function startAdminSession() {
