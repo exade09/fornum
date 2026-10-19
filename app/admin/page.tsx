@@ -144,6 +144,10 @@ export default async function AdminPage() {
 
         <FeeSplitDesk
           treasury={buyback.settings.treasuryWallet}
+          treasuryProblem={
+            buyback.problems.find((p) => p.startsWith("TREASURY")) ??
+            (process.env.TREASURY_WALLET === undefined ? "TREASURY_WALLET is not set on this deployment, add it for Production and redeploy" : null)
+          }
           table={tableAddress}
           tableProblem={tableProblem}
           pending={tokens.filter((t) => t.feeSharing === "pending").map((t) => t.id)}

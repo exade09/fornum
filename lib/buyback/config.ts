@@ -6,7 +6,7 @@ import bs58 from "bs58";
 import { hasDatabase } from "@/lib/db/client";
 import { connect } from "@/lib/solana/read";
 import { launchWalletAddress } from "@/lib/solana/wallet";
-import { parseSettings, type BuybackSettings } from "@/lib/buyback/rules";
+import { cleanSetting, parseSettings, type BuybackSettings } from "@/lib/buyback/rules";
 
 /**
  * Buyback settings, the treasury key and the cluster check
@@ -37,7 +37,7 @@ let keyCache: { keypair: Keypair | null; problem: string | null } | null = null;
 
 function loadTreasuryKey(treasury: string | null) {
   if (keyCache) return keyCache;
-  let raw = process.env.TREASURY_SECRET;
+  let raw = cleanSetting(process.env.TREASURY_SECRET);
   const file = process.env.TREASURY_SECRET_FILE;
   if (!raw && file) {
     try {
@@ -87,7 +87,7 @@ export function buybackConfig(): {
 /** Where the 20% goes at a claim. TREASURY_WALLET, or the older FORNUM_TREASURY */
 export function treasuryWallet(): string | null {
   for (const v of [process.env.TREASURY_WALLET, process.env.FORNUM_TREASURY]) {
-    const s = v?.trim();
+    const s = cleanSetting(v);
     if (!s) continue;
     try {
       new PublicKey(s);

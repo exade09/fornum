@@ -17,7 +17,9 @@ export function FeeSplitDesk({
   table,
   tableProblem,
   pending,
+  treasuryProblem,
 }: {
+  treasuryProblem?: string | null;
   treasury: string | null;
   table: string | null;
   tableProblem: string | null;
@@ -49,7 +51,7 @@ export function FeeSplitDesk({
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Stat label="Treasury" value={treasury ?? "TREASURY_WALLET is not set"} ok={Boolean(treasury)} mono />
+        <Stat label="Treasury" value={treasury ?? treasuryProblem ?? "TREASURY_WALLET is not set"} ok={Boolean(treasury)} mono />
         <Stat
           label="Launch lookup table"
           value={table ? (tableProblem ? `${table}: ${tableProblem}` : table) : "not created yet"}

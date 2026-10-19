@@ -66,19 +66,24 @@ function lamportsSetting(
   return n;
 }
 
+/** A setting as pasted: spaces, newlines and surrounding quotes removed */
+export function cleanSetting(v: string | undefined) {
+  return v?.trim().replace(/^["'`]+|["'`]+$/g, "").trim() || undefined;
+}
+
 function addressSetting(
   env: Record<string, string | undefined>,
   name: string,
   problems: string[],
   required: boolean,
 ) {
-  const raw = env[name]?.trim();
+  const raw = cleanSetting(env[name]);
   if (!raw) {
     if (required) problems.push(`${name} is not set`);
     return null;
   }
   if (!BASE58.test(raw)) {
-    problems.push(`${name} is not a Solana address`);
+    problems.push(`${name} is set but is not a Solana address (${raw.length} characters, check for extra symbols)`);
     return null;
   }
   return raw;
@@ -92,7 +97,7 @@ function addressSetting(
  */
 export function parseSettings(env: Record<string, string | undefined>) {
   const problems: string[] = [];
-  const enabled = env.BUYBACK_ENABLED?.trim().toLowerCase() === "true";
+  const enabled = cleanSetting(env.BUYBACK_ENABLED)?.toLowerCase() === "true";
 
   const settings: BuybackSettings = {
     enabled,
