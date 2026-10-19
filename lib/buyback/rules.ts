@@ -32,7 +32,7 @@ export type BuybackSettings = {
 };
 
 export const DEFAULTS = {
-  minLamports: 10_000_000, // 0.01 SOL
+  minLamports: 1, // no threshold: any confirmed amount is spent
   maxLamports: 1_000_000_000, // 1 SOL
   slippageBps: 300, // 3%
   maxNetworkCostLamports: 5_000_000, // 0.005 SOL, covers a Token-2022 ATA
@@ -132,7 +132,7 @@ export function parseSettings(env: Record<string, string | undefined>) {
     ),
   };
 
-  if (settings.minLamports <= 0) problems.push("BUYBACK_MIN_LAMPORTS must be above zero");
+  if (settings.minLamports <= 0) settings.minLamports = 1;
   if (settings.maxLamports < settings.minLamports) {
     problems.push("BUYBACK_MAX_LAMPORTS must not be below BUYBACK_MIN_LAMPORTS");
   }

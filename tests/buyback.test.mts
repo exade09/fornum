@@ -51,6 +51,13 @@ test("max below min is refused", () => {
   assert.ok(problems.some((p) => p.includes("BUYBACK_MAX_LAMPORTS")));
 });
 
+test("with no minimum set, any confirmed amount is spent", () => {
+  const { settings } = parseSettings({});
+  assert.equal(settings.minLamports, 1);
+  assert.equal(nextBudget(5, settings), 5);
+  assert.deepEqual(parseSettings({ BUYBACK_MIN_LAMPORTS: "0" }).problems, []);
+});
+
 test("the budget waits for the minimum and never passes the maximum", () => {
   const s = { minLamports: 1_000, maxLamports: 5_000 };
   assert.equal(nextBudget(999, s), 0);

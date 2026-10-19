@@ -25,8 +25,9 @@ export function feesEnabled() {
 }
 
 export function minClaimLamports() {
-  const v = Number(process.env.FEE_MIN_CLAIM_LAMPORTS ?? "1000000");
-  return Number.isSafeInteger(v) && v > 0 ? v : 1_000_000;
+  // no threshold unless one is set: pump.fun's own minimum decides
+  const v = Number(process.env.FEE_MIN_CLAIM_LAMPORTS ?? "0");
+  return Number.isSafeInteger(v) && v >= 0 ? v : 0;
 }
 
 export async function distributeAll(
