@@ -94,6 +94,14 @@ through PumpPortal from the first funded, unused launch wallet, and the mint is
 recorded by itself. A JSON body with `mint` still records a coin deployed some
 other way.
 
+Fornum's 20% of a claim buys back the Fornum token (`FORNUM_TOKEN_MINT`). It
+stays on the coin's launch wallet at the claim, and right after the answer the
+same wallet buys the token through PumpPortal and burns exactly what it bought,
+closing the token account so its rent comes back. A share under 0.001 SOL
+waits for the next claim. Runs that did not go through are retried with the
+button on `/admin` (`POST /api/admin/buyback`). The Fornum token's own fees are
+left out, so it never buys itself.
+
 `/admin` is behind a password. Only its scrypt hash is kept, in
 `ADMIN_PASSWORD_HASH`, made with `node scripts/admin-password.mts`. The
 operator routes take that session cookie, or `ADMIN_TOKEN` as a bearer token

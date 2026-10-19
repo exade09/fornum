@@ -30,6 +30,10 @@ create table if not exists tokens (
 
   fees_accrued_lamports bigint not null default 0,
   fees_claimed_lamports bigint not null default 0,
+  -- Fornum's 20% split off at claims
+  fees_fornum_lamports  bigint not null default 0,
+  -- part of that 20% still on the launch wallet, waiting to buy the Fornum token
+  buyback_pending_lamports bigint not null default 0,
 
   market_cap_usd        numeric not null default 0,
   holders               integer not null default 0,
@@ -116,3 +120,20 @@ create table if not exists sign_in_links (
 );
 
 create index if not exists sign_in_links_expires on sign_in_links (expires_at);
+
+-- Fornum's share of other people's coins buying the Fornum token, which is
+-- then burned. One row per buy, with both transactions
+create table if not exists buybacks (
+  id              text primary key,
+  token_id        text not null references tokens (id) on delete cascade,
+  spent_lamports  bigint not null,
+  tokens_bought   text not null,
+  tokens_burned   text not null default '0',
+  decimals        integer not null default 6,
+  buy_tx          text not null,
+  burn_tx         text,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists buybacks_created_at_idx on buybacks (created_at desc);
+create index if not exists buybacks_unburned_idx on buybacks (token_id) where burn_tx is null;

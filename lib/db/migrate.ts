@@ -85,6 +85,19 @@ const TABLES = [
     created_at timestamptz not null default now()
   )`,
   `create index if not exists sign_in_links_expires on sign_in_links (expires_at)`,
+  `create table if not exists buybacks (
+    id text primary key,
+    token_id text not null references tokens (id) on delete cascade,
+    spent_lamports bigint not null,
+    tokens_bought text not null,
+    tokens_burned text not null default '0',
+    decimals integer not null default 6,
+    buy_tx text not null,
+    burn_tx text,
+    created_at timestamptz not null default now()
+  )`,
+  `create index if not exists buybacks_created_at_idx on buybacks (created_at desc)`,
+  `create index if not exists buybacks_unburned_idx on buybacks (token_id) where burn_tx is null`,
 ];
 
 /** Columns added to tokens after it was first created, by later migrations */
@@ -93,6 +106,7 @@ const TOKEN_COLUMNS: Record<string, string> = {
   baseline_lamports: "bigint not null default 0",
   image_url: "text",
   fees_fornum_lamports: "bigint not null default 0",
+  buyback_pending_lamports: "bigint not null default 0",
 };
 
 let done: Promise<void> | null = null;

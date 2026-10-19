@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { after } from "next/server";
 import { readSession } from "@/lib/auth/session";
 import { getToken, getWallet, recordClaim } from "@/lib/db/store";
 import {
@@ -14,6 +15,8 @@ import {
 import { walletAt } from "@/lib/solana/launch-wallets";
 import { MIN_COLLECT_LAMPORTS, collectCreatorFees, readWalletFees } from "@/lib/pump/fees";
 import { forgetFees } from "@/lib/tokens";
+import { buysBack, runBuyback } from "@/lib/buyback";
+import { MIN_BUYBACK_LAMPORTS } from "@/lib/pump/buyback";
 import {
   claimableFromBalance,
   claimableLamports,
@@ -29,7 +32,8 @@ import {
  * behind, and the write moves the claimed total in the same transaction so the
  * same fees cannot go out twice
  */
-// collecting from pump.fun first means two transactions back to back
+// collecting from pump.fun first means two transactions back to back, and the
+// buyback runs after the answer within the same limit
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
@@ -132,9 +136,11 @@ export async function POST(request: Request) {
    * nobody has to record an amount. The floor never drops below rent
    * exemption, so a claim cannot leave the wallet to be swept away.
    *
-   * That amount is split 80/20: the owner's part goes to their address, and
-   * Fornum's goes to the treasury in the same transaction, or stays on the
-   * launch wallet above a raised line when no treasury is set
+   * That amount is split 80/20: the owner's part goes to their address.
+   * Fornum's part stays on the launch wallet to buy back the Fornum token
+   * right after this answers, or, when no buyback is set up, goes to the
+   * treasury in the same transaction, or stays above a raised line when
+   * there is no treasury either
    */
   const floor = Math.max(token.baselineLamports, RENT_EXEMPT_LAMPORTS);
   const distributable = perToken
@@ -144,7 +150,8 @@ export async function POST(request: Request) {
     ? ownerShare(distributable)
     : Math.min(claimableLamports(token), sendableFrom(balance));
   const fornum = perToken ? distributable - owed : 0;
-  const treasury = treasuryAddress();
+  const buyback = perToken && buysBack(token);
+  const treasury = buyback ? null : treasuryAddress();
 
   if (owed <= 0) {
     return Response.json({ error: "Nothing to claim" }, { status: 400 });
@@ -170,10 +177,17 @@ export async function POST(request: Request) {
     },
     {
       fornumLamports: fornum,
-      // kept on the launch wallet when there is no treasury, so lift its line
+      // kept on the launch wallet when it does not go to the treasury, so lift its line
       baselineBumpLamports: perToken && !treasury ? fornum : 0,
+      buybackLamports: buyback ? fornum : 0,
     },
   );
+
+  if (buyback && (token.buybackPendingLamports ?? 0) + fornum >= MIN_BUYBACK_LAMPORTS) {
+    after(async () => {
+      await runBuyback(token.id);
+    });
+  }
 
   return Response.json({
     amountLamports: claim.amountLamports,
