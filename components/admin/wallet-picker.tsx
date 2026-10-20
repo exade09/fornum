@@ -1,6 +1,8 @@
 "use client";
 
-import { shortAddress, sol } from "@/lib/format";
+import { useState } from "react";
+import { CheckIcon, CopyIcon } from "@/components/icons";
+import { sol } from "@/lib/format";
 import type { LaunchWallet, WalletState } from "@/lib/launch-fleet";
 import { cn } from "@/lib/cn";
 
@@ -95,6 +97,11 @@ export function WalletPicker({
             {n} {LOOK[state].label.toLowerCase()}
           </span>
         ))}
+        <CopyButton
+          text={wallets.map((w) => w.address).join("\n")}
+          label="Copy all addresses"
+          className="ml-auto"
+        />
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(2.6rem,1fr))] gap-1.5">
@@ -126,12 +133,13 @@ export function WalletPicker({
             Wallet {chosen.label}
             {chosen.index < 0 && " · funding wallet"}
           </span>
-          <span className="font-mono text-xs text-primary">
-            {shortAddress(chosen.address)}
+          <span className="min-w-0 font-mono text-xs break-all text-primary select-all">
+            {chosen.address}
           </span>
           <span className="tnum text-xs text-secondary">
             {sol(chosen.lamports)}
           </span>
+          <CopyButton text={chosen.address} label="Copy" className="ml-auto" />
         </div>
       )}
 
@@ -143,5 +151,32 @@ export function WalletPicker({
         </p>
       )}
     </div>
+  );
+}
+
+/** Copies text and says so for a moment */
+function CopyButton({ text, label, className }: { text: string; label: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          /* clipboard blocked, the address can still be selected */
+        }
+      }}
+      className={cn(
+        "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors",
+        copied ? "bg-brand/15 text-brand" : "bg-primary/[0.06] text-secondary hover:text-primary",
+        className,
+      )}
+    >
+      {copied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
+      {copied ? "Copied" : label}
+    </button>
   );
 }
