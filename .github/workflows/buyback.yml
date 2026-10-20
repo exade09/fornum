@@ -1,6 +1,8 @@
-# Runs the buyback every 5 minutes: distribute what pump.fun holds for coins
+# Runs the buyback every minute: distribute what pump.fun holds for coins
 # with the split locked on chain, read the receipts, buy back and burn.
-# Each call runs two passes 30 s apart. Claims also start a pass on their own.
+# GitHub starts a schedule at most every 5 minutes, so each run stays for
+# about 5 minutes and calls the site once a minute; each call itself runs two
+# passes 30 s apart. Claims also start a pass on their own.
 # Needs the repository secret PASS_KEY; the site keeps only its SHA-256.
 name: buyback
 
@@ -16,14 +18,23 @@ concurrency:
 jobs:
   pass:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8
     steps:
-      - name: Run a buyback pass
+      - name: Run a buyback pass every minute for 5 minutes
         env:
           CRON_SECRET: ${{ secrets.PASS_KEY }}
         run: |
           if [ -z "$CRON_SECRET" ]; then echo "PASS_KEY is not set in the repository secrets"; exit 1; fi
-          # the repository is public, so only the status is printed, not the pass log
-          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 90 -H "Authorization: Bearer $CRON_SECRET" https://www.fornum.fun/api/cron/buyback)
-          echo "status $code"
-          [ "$code" = "200" ]
+          ok=0
+          for i in 1 2 3 4 5; do
+            start=$(date +%s)
+            # the repository is public, so only the status is printed, not the pass log
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 90 -H "Authorization: Bearer $CRON_SECRET" https://www.fornum.fun/api/cron/buyback || echo 000)
+            echo "minute $i: status $code"
+            [ "$code" = "200" ] && ok=$((ok+1))
+            if [ "$i" -lt 5 ]; then
+              left=$((60 - ($(date +%s) - start)))
+              [ "$left" -gt 0 ] && sleep "$left"
+            fi
+          done
+          [ "$ok" -gt 0 ]
