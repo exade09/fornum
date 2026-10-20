@@ -23,6 +23,7 @@ import {
 import { inspectMint, programsReady, signBuyback } from "@/lib/buyback/market";
 import { scanDistributions } from "@/lib/buyback/scan";
 import { distributeAll, feesEnabled } from "@/lib/buyback/distribute-all";
+import { setSetting } from "@/lib/settings";
 import { expired, judgeBuybackReceipt, judgeCreditReceipt, nextBudget } from "@/lib/buyback/rules";
 
 /**
@@ -257,6 +258,8 @@ export async function runBuybackPass(budgetMs = 45_000) {
   const owner = randomUUID();
   const { log, push } = logger();
   const { settings, problems, treasuryKey } = buybackConfig();
+  // when passes last ran, so a stopped schedule shows up on /admin
+  await setSetting("buyback_last_pass", new Date().toISOString()).catch(() => {});
 
   try {
     // pump.fun distributions first, so this pass can already read what they paid

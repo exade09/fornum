@@ -31,6 +31,7 @@ export function BuybackDesk({
   treasury,
   mint,
   problems,
+  lastPass,
   available,
   reserved,
   pending,
@@ -44,6 +45,7 @@ export function BuybackDesk({
   treasury: string | null;
   mint: string | null;
   problems: string[];
+  lastPass?: string | null;
   available: string;
   reserved: string;
   pending: number;
@@ -89,6 +91,11 @@ export function BuybackDesk({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Stat label="Sending" value={enabled ? "on" : "off (BUYBACK_ENABLED)"} ok={enabled} />
+        <Stat
+          label="Last pass"
+          value={lastPass ? new Date(lastPass).toLocaleString("en-US") : "never"}
+          ok={Boolean(lastPass) && Date.now() - new Date(lastPass!).getTime() < 3 * 60_000}
+        />
         <Stat label="Treasury" value={treasury ?? "TREASURY_WALLET is not set"} ok={Boolean(treasury)} mono />
         <Stat label="Fornum token" value={mint ?? "PLATFORM_TOKEN_MINT is not set"} ok={Boolean(mint)} mono />
         <Stat label="In the ledger" value={`${available} available, ${reserved} reserved`} ok />

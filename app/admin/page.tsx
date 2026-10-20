@@ -9,7 +9,7 @@ import { TokenImages } from "@/components/admin/token-images";
 import { BuybackDesk } from "@/components/admin/buyback-desk";
 import { FeeSplitDesk } from "@/components/admin/fee-split-desk";
 import { CaEditor } from "@/components/admin/ca-editor";
-import { contractAddress } from "@/lib/settings";
+import { contractAddress, getSetting } from "@/lib/settings";
 import { launchTableAddress } from "@/lib/pump/policies";
 import { verifiedLaunchTable } from "@/lib/pump/shares";
 import { connect } from "@/lib/solana/read";
@@ -162,6 +162,7 @@ export default async function AdminPage() {
           treasury={buyback.settings.treasuryWallet}
           mint={buyback.settings.mainMint}
           problems={buyback.problems}
+          lastPass={await getSetting("buyback_last_pass")}
           available={sol(ledger?.availableLamports ?? 0)}
           reserved={sol(ledger?.reservedLamports ?? 0)}
           pending={ledger?.pendingCredits ?? 0}
